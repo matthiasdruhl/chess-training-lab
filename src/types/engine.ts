@@ -11,16 +11,3 @@ export interface AnalysisResult {
   pv: string[];
   bestMoveUci: string;
 }
-
-export type WorkerIn =
-  | { type: 'init' }
-  | { type: 'position'; fen: string; moves?: string[] }
-  | { type: 'go'; movetime?: number; depth?: number }
-  | { type: 'stop' }
-  | { type: 'setoption'; name: string; value: string | number | boolean };
-
-export type WorkerOut =
-  | { type: 'ready' }
-  | { type: 'info'; depth: number; scoreCp: number; pv: string[] }
-  | { type: 'bestmove'; uci: string; ponder?: string }
-  | { type: 'error'; message: string };

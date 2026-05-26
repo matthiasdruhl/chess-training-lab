@@ -34,10 +34,10 @@ Phased build plan for Chess Training Lab — **8 training modules**, **9 Indexed
 
 ### Acceptance criteria
 
-- [ ] `npm run dev` — all routes reachable, nav works
-- [ ] Board accepts legal moves; FEN paste works
-- [ ] Refresh preserves a settings change (e.g. username)
-- [ ] DevTools → Application → IndexedDB shows all 9 stores
+- [x] `npm run dev` — all routes reachable, nav works
+- [x] Board accepts legal moves; FEN paste works
+- [x] Refresh preserves a settings change (e.g. username)
+- [x] DevTools → Application → IndexedDB shows all 9 stores
 
 ### Out of scope
 
@@ -55,9 +55,9 @@ Phased build plan for Chess Training Lab — **8 training modules**, **9 Indexed
 
 ### Acceptance criteria
 
-- [ ] UI responsive during analysis
-- [ ] Eval bar updates; best move is legal
-- [ ] Worker recovery after restart
+- [x] UI responsive during analysis
+- [x] Eval bar updates; best move is legal
+- [x] Worker recovery after restart
 
 ### Blocks
 
@@ -75,9 +75,9 @@ Phases 5, 7, 8 (middlegame, endgame, Chess.com scans)
 
 ### Acceptance criteria
 
-- [ ] Complete one White + one Black line
-- [ ] Wrong move shows intent; progress persists after refresh
-- [ ] Opponent moves from JSON only
+- [x] Complete one White + one Black line
+- [x] Wrong move shows intent; progress persists after refresh
+- [x] Opponent moves from JSON only
 
 ### Enables
 
@@ -97,10 +97,10 @@ Phase 4 (out-of-book + bridge link to `nodeId`)
 
 ### Acceptance criteria
 
-- [ ] Finish one deviation: plan + move correct; progress saved
-- [ ] Finish one bridge handoff; plan quiz passes; middlegame route opens correct preset query param
-- [ ] Wrong plan choice shows feedback without advancing
-- [ ] Refresh preserves `out_of_book_progress` and `bridge_progress`
+- [x] Finish one deviation: plan + move correct; progress saved
+- [x] Finish one bridge handoff; plan quiz passes; middlegame route opens correct preset query param
+- [x] Wrong plan choice shows feedback without advancing
+- [x] Refresh preserves `out_of_book_progress` and `bridge_progress`
 
 ### Dependency
 
@@ -121,9 +121,9 @@ Phase 3 repertoire `nodeId`s must match `parentNodeId` / `repertoireNodeId` in J
 
 ### Acceptance criteria
 
-- [ ] Karlsbad (or example) — 10 moves vs engine
-- [ ] K+R endgame resets on blunder; `resetCount` persists
-- [ ] Navigate from Bridge → middlegame preset loads automatically
+- [x] Karlsbad (or example) — 10 moves vs engine
+- [x] K+R endgame resets on blunder; `resetCount` persists
+- [x] Navigate from Bridge → middlegame preset loads automatically
 
 ---
 
@@ -139,9 +139,9 @@ Phase 3 repertoire `nodeId`s must match `parentNodeId` / `repertoireNodeId` in J
 
 ### Acceptance criteria
 
-- [ ] Solve one puzzle correctly; fails wrong move with `themeHint`
-- [ ] Progress persists per `puzzleId`
-- [ ] Optional: “Play related structure” opens correct middlegame preset
+- [x] Solve one puzzle correctly; fails wrong move with `themeHint`
+- [x] Progress persists per `puzzleId`
+- [x] Optional: “Play related structure” opens correct middlegame preset
 
 ### Can run in parallel with Phase 5 if engine not needed for grading (recommended after Phase 1–3)
 
@@ -161,10 +161,10 @@ Phase 3 repertoire `nodeId`s must match `parentNodeId` / `repertoireNodeId` in J
 
 ### Acceptance criteria
 
-- [ ] Scan 1–2 months of filtered games
-- [ ] At least one blunder and one conversion saved (or seeded test PGN if API blocked)
-- [ ] Quiz updates `userState`; survives refresh
-- [ ] Conversion record includes `peakEvalCp` and `dropFromPeakCp`
+- [x] Scan 1–2 months of filtered games
+- [x] At least one blunder and one conversion saved (or seeded test PGN if API blocked)
+- [x] Quiz updates `userState`; survives refresh
+- [x] Conversion record includes `peakEvalCp` and `dropFromPeakCp`
 
 ### Settings
 
@@ -191,9 +191,9 @@ Phase 3 repertoire `nodeId`s must match `parentNodeId` / `repertoireNodeId` in J
 
 ### Acceptance criteria
 
-- [ ] Dashboard shows due items from IDB
-- [ ] Export → clear site data → import restores all training history
-- [ ] “Today’s session” marks steps complete in local state (optional `settings.todaySession` in IDB)
+- [x] Dashboard shows due items from IDB
+- [x] Export → clear site data → import restores all training history
+- [x] “Today’s session” marks steps complete in local state (optional `settings.todaySession` in IDB)
 
 ---
 

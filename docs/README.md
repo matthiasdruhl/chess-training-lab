@@ -18,6 +18,7 @@ Complete specification for **Chess Training Lab** — personal, localhost, **8 m
 | **[CONSTANTS.md](./CONSTANTS.md)** | Phase 1+ — thresholds and defaults |
 | **[CONTENT.md](./CONTENT.md)** | Phase 3+ — editing JSON training content |
 | **[CHESSCOM.md](./CHESSCOM.md)** | Phase 7 — API, scan, blunder/conversion detection |
+| **[REVIEW_AGENTS.md](./REVIEW_AGENTS.md)** | IDE code-review agent prompts and rubrics |
 
 ## Example data (copy into `data/`)
 
@@ -42,4 +43,4 @@ Complete specification for **Chess Training Lab** — personal, localhost, **8 m
 ~/Projects/chess-training-lab/
 ```
 
-Documentation complete for v1 implementation. Application source not yet scaffolded.
+Documentation complete for v1. Application source lives in `src/`; automated review playbooks in [REVIEW_AGENTS.md](./REVIEW_AGENTS.md).

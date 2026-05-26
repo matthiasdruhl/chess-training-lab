@@ -32,7 +32,7 @@ export function ReviewQuizPanel({
   bestMoveSan,
 }: ReviewQuizPanelProps) {
   const { settings } = useAppContext();
-  const { fen: boardFen, turn, makeMove, loadFen } = useChessSession(fen);
+  const { fen: boardFen, turn, makeMove, loadFen, draggableSquares } = useChessSession(fen);
   const { lastEval, isThinking, analyze } = useStockfish();
   const [submitted, setSubmitted] = useState(false);
   const [pendingUci, setPendingUci] = useState<string | null>(null);
@@ -95,6 +95,7 @@ export function ReviewQuizPanel({
           orientation={orientation}
           onMove={handleMove}
           allowDragging={!submitted || !isCorrect}
+          draggableSquares={!submitted || !isCorrect ? draggableSquares : undefined}
         />
       </div>
 

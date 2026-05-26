@@ -22,6 +22,7 @@ export default function OutOfBookRoute() {
     choosePlan,
     progress,
     fen,
+    draggableSquares,
     handleMove,
     orientation,
     isBoardLocked,
@@ -50,6 +51,7 @@ export default function OutOfBookRoute() {
               orientation={orientation}
               onMove={handleMove}
               allowDragging={!isBoardLocked}
+              draggableSquares={isBoardLocked ? undefined : draggableSquares}
               boardWidth={440}
             />
           </div>

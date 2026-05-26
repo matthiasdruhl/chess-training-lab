@@ -46,7 +46,7 @@
       "parentNodeId": "ck-classical",
       "color": "black",
       "name": "vs Classical — 2. Nc3 instead of 3. Nc3 line",
-      "fen": "rnbqkbnr/pp1ppppp/2p5/8/4P3/2N5/8/PPPP1PPP/RNBQKBNR b KQkq - 1 2",
+      "fen": "rnbqkbnr/pp1ppppp/2p5/8/4P3/2N5/PPPP1PPP/RNBQKBNR b KQkq - 2 2",
       "opponentMove": { "san": "Nc3", "uci": "b1c3" },
       "principle": "Stick to ...d5 and ...c6 structures; develop knights before chasing pawns.",
       "planChoices": [

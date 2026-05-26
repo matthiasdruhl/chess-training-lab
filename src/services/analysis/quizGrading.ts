@@ -1,6 +1,7 @@
-import { Chess, type Square } from 'chess.js';
+import { Chess } from 'chess.js';
 import { QUIZ_MOVE_LOSS_CP } from '../../constants/analysis';
 import type { GoLimits } from '../../types/engine';
+import { fenAfterUci } from '../chess/uci';
 import { toUserPerspective } from './evalPerspective';
 
 type AnalyzeFn = (fen: string, limits?: GoLimits) => Promise<{ scoreCp: number; bestMoveUci: string }>;
@@ -41,14 +42,11 @@ export async function gradeQuizMove(input: QuizGradeInput): Promise<boolean> {
       return true;
     }
 
-    const chess = new Chess(fen);
-    const from = userUci.slice(0, 2) as Square;
-    const to = userUci.slice(2, 4) as Square;
-    const promo = userUci[4];
-    const promotion =
-      promo === 'q' || promo === 'r' || promo === 'b' || promo === 'n' ? promo : undefined;
-    chess.move({ from, to, promotion: promotion ?? 'q' });
-    const fenAfter = chess.fen();
+    const fenAfter = fenAfterUci(fen, userUci, { defaultPromotion: 'q' });
+    if (!fenAfter) {
+      return false;
+    }
+    const chess = new Chess(fenAfter);
 
     const afterAnalysis = await analyze(fenAfter, limits);
     const stmBefore = fen.includes(' w ') ? 'w' : 'b';

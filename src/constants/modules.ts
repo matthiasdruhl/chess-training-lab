@@ -21,7 +21,7 @@ const MODULES = [
   },
   {
     title: 'Structure Tactics',
-    description: 'Pattern recognition in your opening structures (preview route; full module in Phase 6).',
+    description: 'Pattern recognition in your opening structures.',
     path: '/tactics',
   },
   {

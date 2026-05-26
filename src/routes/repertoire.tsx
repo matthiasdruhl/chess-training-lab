@@ -23,6 +23,7 @@ export default function RepertoireRoute() {
     treeNodes,
     progressMap,
     fen,
+    draggableSquares,
     phase,
     showIntent,
     feedback,
@@ -88,6 +89,7 @@ export default function RepertoireRoute() {
               orientation={boardOrientation}
               onMove={handleMove}
               allowDragging={!isBoardLocked}
+              draggableSquares={isBoardLocked ? undefined : draggableSquares}
               boardWidth={440}
             />
           </div>

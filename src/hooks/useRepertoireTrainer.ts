@@ -73,6 +73,7 @@ export function useRepertoireTrainer(initialNodeIdFromQuery: string | null = nul
     makeMove,
     applyUciMove,
     reset: resetBoard,
+    draggableSquares,
   } = useChessSession();
 
   const selectedEntry = selectedNodeId
@@ -498,6 +499,7 @@ export function useRepertoireTrainer(initialNodeIdFromQuery: string | null = nul
     treeNodes,
     progressMap,
     fen,
+    draggableSquares,
     plyIndex,
     phase,
     showIntent,

@@ -1,11 +1,8 @@
+import { DEFAULT_DEPTH } from '../../constants/engine';
 import { resolveGoLimits } from './limits';
-import { Chess, type Square } from 'chess.js';
-import type {
-  AnalysisResult,
-  GoLimits,
-  WorkerIn,
-  WorkerOut,
-} from '../../types/engine';
+import { parseUciLines } from './uciProtocol';
+import { isLegalUciForFen } from '../chess/uci';
+import type { AnalysisResult, GoLimits } from '../../types/engine';
 
 const QUEUE_DESTROYED = 'Engine queue destroyed';
 const TERMINAL_BESTMOVE = '(none)';
@@ -88,7 +85,7 @@ export class EngineQueue {
     this.clearJobTimer();
     job.reject(new Error('Analysis cancelled.'));
     this.callbacks.onThinkingChange?.(false);
-    this.worker.postMessage({ type: 'stop' } satisfies WorkerIn);
+    this.worker.postMessage('stop');
   }
 
   enqueueAnalyze(fen: string, limits: GoLimits = {}): Promise<AnalysisResult> {
@@ -113,34 +110,34 @@ export class EngineQueue {
     });
   }
 
-  private handleMessage = (event: MessageEvent<WorkerOut>): void => {
+  private handleMessage = (event: MessageEvent): void => {
     if (this.destroyed) {
       return;
     }
 
-    const msg = event.data;
+    for (const msg of parseUciLines(event.data)) {
+      switch (msg.type) {
+        case 'info':
+          this.lastInfo = {
+            depth: msg.depth,
+            scoreCp: msg.scoreCp,
+            pv: msg.pv,
+          };
+          this.callbacks.onInfo?.(this.lastInfo);
+          break;
 
-    switch (msg.type) {
-      case 'info':
-        this.lastInfo = {
-          depth: msg.depth,
-          scoreCp: msg.scoreCp,
-          pv: msg.pv,
-        };
-        this.callbacks.onInfo?.(this.lastInfo);
-        break;
+        case 'bestmove':
+          this.finishCurrent(msg.uci);
+          break;
 
-      case 'bestmove':
-        this.finishCurrent(msg.uci);
-        break;
+        case 'error':
+          this.failCurrent(new Error(msg.message));
+          this.callbacks.onError?.(msg.message);
+          break;
 
-      case 'error':
-        this.failCurrent(new Error(msg.message));
-        this.callbacks.onError?.(msg.message);
-        break;
-
-      default:
-        break;
+        default:
+          break;
+      }
     }
   };
 
@@ -159,16 +156,16 @@ export class EngineQueue {
     this.cancelled = false;
     this.callbacks.onThinkingChange?.(true);
 
-    this.worker.postMessage({
-      type: 'position',
-      fen: job.fen,
-    } satisfies WorkerIn);
+    this.worker.postMessage(`position fen ${job.fen}`);
 
     const limits = resolveGoLimits(job.limits);
-    this.worker.postMessage({
-      type: 'go',
-      ...limits,
-    } satisfies WorkerIn);
+    if (limits.depth !== undefined) {
+      this.worker.postMessage(`go depth ${limits.depth}`);
+    } else if (limits.movetime !== undefined) {
+      this.worker.postMessage(`go movetime ${limits.movetime}`);
+    } else {
+      this.worker.postMessage(`go depth ${DEFAULT_DEPTH}`);
+    }
     this.armJobTimeout(job, limits);
   }
 
@@ -194,7 +191,7 @@ export class EngineQueue {
 
     if (
       bestMoveUci !== TERMINAL_BESTMOVE &&
-      !this.isLegalMoveForFen(job.fen, bestMoveUci)
+      !isLegalUciForFen(job.fen, bestMoveUci)
     ) {
       job.reject(
         new Error(`Engine suggested illegal move for position: ${bestMoveUci}`),
@@ -262,7 +259,7 @@ export class EngineQueue {
       if (this.current !== job) {
         return;
       }
-      this.worker.postMessage({ type: 'stop' } satisfies WorkerIn);
+      this.worker.postMessage('stop');
       this.failCurrent(
         new Error(
           `Engine job timed out after ${timeoutMs}ms while waiting for bestmove.`,
@@ -292,29 +289,4 @@ export class EngineQueue {
     return JOB_TIMEOUT_FALLBACK_MS;
   }
 
-  private isLegalMoveForFen(fen: string, uci: string): boolean {
-    if (uci.length !== 4 && uci.length !== 5) {
-      return false;
-    }
-
-    try {
-      const chess = new Chess(fen);
-      const from = uci.slice(0, 2) as Square;
-      const to = uci.slice(2, 4) as Square;
-      const promotionChar = uci[4];
-      if (promotionChar && !['q', 'r', 'b', 'n'].includes(promotionChar)) {
-        return false;
-      }
-      const promotion =
-        promotionChar === 'q' ||
-        promotionChar === 'r' ||
-        promotionChar === 'b' ||
-        promotionChar === 'n'
-          ? promotionChar
-          : undefined;
-      return Boolean(chess.move({ from, to, promotion }));
-    } catch {
-      return false;
-    }
-  }
 }

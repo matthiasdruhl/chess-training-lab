@@ -12,13 +12,9 @@ import {
 import { ENGINE_SKILL_MAX } from '../constants/engine';
 import { defaultMovetimeLimits } from '../services/engine/limits';
 import { EngineQueue } from '../services/engine/queue';
-import type {
-  AnalysisResult,
-  EngineStatus,
-  GoLimits,
-  WorkerIn,
-  WorkerOut,
-} from '../types/engine';
+import { parseUciLines } from '../services/engine/uciProtocol';
+import { createStockfishWorker } from '../workers/createStockfishWorker';
+import type { AnalysisResult, EngineStatus, GoLimits } from '../types/engine';
 
 const EVAL_UPDATE_MS = 100;
 
@@ -126,37 +122,46 @@ export function EngineProvider({ children }: { children: ReactNode }) {
 
     workerRef.current?.terminate();
 
-    const worker = new Worker(
-      new URL('../workers/stockfish.worker.ts', import.meta.url),
-      { type: 'module' },
-    );
+    const worker = createStockfishWorker();
     workerRef.current = worker;
     attachQueue(worker);
 
-    const handleReady = (event: MessageEvent<WorkerOut>) => {
-      if (event.data.type === 'ready') {
-        initSentRef.current = true;
-        setEngineError(null);
-        setEngineStatus('ready');
-        worker.removeEventListener('message', handleReady);
-      }
-      if (event.data.type === 'error') {
-        setEngineError(event.data.message);
-        setEngineStatus('error');
-        worker.removeEventListener('message', handleReady);
+    let sentIsReady = false;
+    const handleReady = (event: MessageEvent) => {
+      for (const msg of parseUciLines(event.data)) {
+        if (msg.type === 'uciok' && !sentIsReady) {
+          sentIsReady = true;
+          worker.postMessage('isready');
+        }
+        if (msg.type === 'ready') {
+          initSentRef.current = true;
+          setEngineError(null);
+          setEngineStatus('ready');
+          worker.removeEventListener('message', handleReady);
+        }
+        if (msg.type === 'error') {
+          setEngineError(msg.message);
+          setEngineStatus('error');
+          worker.removeEventListener('message', handleReady);
+        }
       }
     };
 
     worker.addEventListener('message', handleReady);
-    worker.addEventListener('error', () => {
+    worker.addEventListener('error', (event) => {
       initSentRef.current = false;
+      const message =
+        event.message ||
+        (event.error instanceof Error ? event.error.message : null) ||
+        'Stockfish worker failed to load.';
+      setEngineError(message);
       setEngineStatus('error');
       queueRef.current?.cancelCurrent();
       queueRef.current?.clearPending();
     });
 
     setEngineStatus('idle');
-    worker.postMessage({ type: 'init' } satisfies WorkerIn);
+    worker.postMessage('uci');
   }, [attachQueue, clearEvalSchedule]);
 
   useEffect(() => {
@@ -210,7 +215,7 @@ export function EngineProvider({ children }: { children: ReactNode }) {
     if (!worker || !initSentRef.current) {
       return;
     }
-    worker.postMessage({ type: 'setoption', name, value } satisfies WorkerIn);
+    worker.postMessage(`setoption name ${name} value ${value}`);
   }, []);
 
   const applySkillLevel = useCallback(

@@ -1,4 +1,5 @@
-import { Chess, type Square } from 'chess.js';
+import { Chess } from 'chess.js';
+import { applyUciToGame, START_FEN } from '../chess/uci';
 import type {
   FlattenedRepertoireNode,
   RepertoireColor,
@@ -7,27 +8,6 @@ import type {
   RepertoireRoot,
   TrainingStart,
 } from '../../types/repertoire';
-
-const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-
-function applyUciMove(game: Chess, uci: string): boolean {
-  if (uci.length < 4) {
-    return false;
-  }
-  const from = uci.slice(0, 2) as Square;
-  const to = uci.slice(2, 4) as Square;
-  const promoChar = uci[4];
-  const promotion =
-    promoChar === 'q' || promoChar === 'r' || promoChar === 'b' || promoChar === 'n'
-      ? promoChar
-      : undefined;
-  try {
-    const move = game.move({ from, to, promotion: promotion ?? 'q' });
-    return move !== null;
-  } catch {
-    return false;
-  }
-}
 
 export function isUserPly(plyIndex: number, color: RepertoireColor): boolean {
   return color === 'white' ? plyIndex % 2 === 0 : plyIndex % 2 === 1;
@@ -38,7 +18,7 @@ export function getTrainingStart(node: RepertoireNode): TrainingStart {
   const game = new Chess(START_FEN);
   for (let i = 0; i < branchPoint; i += 1) {
     const uci = node.pathUci[i];
-    if (!uci || !applyUciMove(game, uci)) {
+    if (!uci || !applyUciToGame(game, uci, { defaultPromotion: 'q' })) {
       break;
     }
   }

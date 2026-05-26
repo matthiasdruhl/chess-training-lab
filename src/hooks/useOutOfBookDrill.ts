@@ -75,7 +75,9 @@ export function useOutOfBookDrill(deviationIdFromQuery: string | null, parentNod
     [filteredDeviations, selectedDeviationId],
   );
 
-  const { fen, loadFen, applyUciMove, makeMove } = useChessSession(selectedDeviation?.fen);
+  const { fen, loadFen, applyUciMove, makeMove, draggableSquares } = useChessSession(
+    selectedDeviation?.fen,
+  );
 
   const [step, setStep] = useState<OutOfBookDrillStep>('plan');
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -427,6 +429,7 @@ export function useOutOfBookDrill(deviationIdFromQuery: string | null, parentNod
     choosePlan,
     progress,
     fen,
+    draggableSquares,
     handleMove,
     orientation: selectedDeviation?.color ?? 'white',
     isBoardLocked: (step !== 'move' && step !== 'continuation') || isAutoPlaying,

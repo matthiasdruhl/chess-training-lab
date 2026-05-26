@@ -16,6 +16,7 @@ import {
   getDrillStats,
   putDrillStats,
 } from '../storage/drillStatsRepo';
+import { fenAfterUci } from '../services/chess/uci';
 import { useChessSession } from './useChessSession';
 import { useStockfish } from './useStockfish';
 
@@ -104,9 +105,8 @@ export function usePresetSession(
     return [selectedPreset, ...filteredPresets];
   }, [filteredPresets, selectedPreset]);
 
-  const { fen, turn, history, isGameOver, loadFen, makeMove, applyUciMove } = useChessSession(
-    selectedPreset?.fen,
-  );
+  const { fen, turn, history, isGameOver, loadFen, makeMove, applyUciMove, draggableSquares } =
+    useChessSession(selectedPreset?.fen);
 
   const {
     analyze,
@@ -287,23 +287,13 @@ export function usePresetSession(
               setTimeout(() => resolve(), OPPONENT_REPLY_DELAY_MS);
             });
 
-            const chess = new Chess(positionFen);
-            const from = uci.slice(0, 2) as Square;
-            const to = uci.slice(2, 4) as Square;
-            const promo = uci[4];
-            const promotion =
-              promo === 'q' || promo === 'r' || promo === 'b' || promo === 'n'
-                ? promo
-                : undefined;
-
-            // chess.js returns null when the move is illegal; treat that as a failure.
-            const localMove = chess.move({ from, to, promotion: promotion ?? 'q' });
+            const fenAfter = fenAfterUci(positionFen, uci, { defaultPromotion: 'q' });
             const applied = applyUciMove(uci);
-            if (!localMove || !applied) {
+            if (!fenAfter || !applied) {
               throw new Error('Engine reply was not applicable.');
             }
 
-            return chess.fen();
+            return fenAfter;
           } catch (err) {
             if (attempt === 0) {
               await restartThenRetry(
@@ -339,19 +329,17 @@ export function usePresetSession(
           return true;
         }
 
-        const chess = new Chess(fenBefore);
-        const from = userUci.slice(0, 2) as Square;
-        const to = userUci.slice(2, 4) as Square;
-        const promo = userUci[4];
-        const promotion =
-          promo === 'q' || promo === 'r' || promo === 'b' || promo === 'n' ? promo : undefined;
-        chess.move({ from, to, promotion: promotion ?? 'q' });
-        const fenAfter = chess.fen();
+        const fenAfter = fenAfterUci(fenBefore, userUci, { defaultPromotion: 'q' });
+        if (!fenAfter) {
+          resetToPreset('mistake');
+          return false;
+        }
 
         const afterAnalysis = await analyze(fenAfter, presetGoLimits(preset));
         const userColor = userColorChar(preset);
+        const chessAfter = new Chess(fenAfter);
         const evalBefore = normalizeToUserPov(beforeAnalysis.scoreCp, userColor, userColor);
-        const evalAfter = normalizeToUserPov(afterAnalysis.scoreCp, chess.turn(), userColor);
+        const evalAfter = normalizeToUserPov(afterAnalysis.scoreCp, chessAfter.turn(), userColor);
         if (!Number.isFinite(evalBefore) || !Number.isFinite(evalAfter)) {
           resetToPreset('mistake');
           return false;
@@ -414,14 +402,11 @@ export function usePresetSession(
         const userColor = userColorChar(preset);
         let currentFen: string;
 
-        const chess = new Chess(fenBefore);
-        const from = userUci.slice(0, 2) as Square;
-        const to = userUci.slice(2, 4) as Square;
-        const promo = userUci[4];
-        const promotion =
-          promo === 'q' || promo === 'r' || promo === 'b' || promo === 'n' ? promo : undefined;
-        chess.move({ from, to, promotion: promotion ?? 'q' });
-        currentFen = chess.fen();
+        const fenAfterUser = fenAfterUci(fenBefore, userUci, { defaultPromotion: 'q' });
+        if (!fenAfterUser) {
+          return;
+        }
+        currentFen = fenAfterUser;
 
         if (isDrawOrStalemate(currentFen)) {
           if (resetOnDrawEnabled(preset)) {
@@ -702,6 +687,7 @@ export function usePresetSession(
     selectedPresetId,
     selectPreset,
     fen,
+    draggableSquares,
     turn,
     history,
     stats,

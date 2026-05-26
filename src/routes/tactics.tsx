@@ -21,6 +21,7 @@ export default function TacticsRoute() {
     queueLength,
     solvedCount,
     fen,
+    draggableSquares,
     step,
     feedback,
     engineHint,
@@ -74,6 +75,7 @@ export default function TacticsRoute() {
               orientation={orientation}
               onMove={handleMove}
               allowDragging={!isBoardLocked}
+              draggableSquares={isBoardLocked ? undefined : draggableSquares}
               boardWidth={440}
             />
           </div>

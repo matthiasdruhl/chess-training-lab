@@ -42,7 +42,8 @@ function moduleDueLabel(path: string, stats: DashboardStats | null, loading: boo
 
 export default function DashboardRoute() {
   const { settings, isLoading, updateSettings } = useAppContext();
-  const { fen, turn, history, loadFen, makeMove, applyUciMove } = useChessSession();
+  const { fen, turn, history, loadFen, makeMove, applyUciMove, draggableSquares } =
+    useChessSession();
   const {
     engineStatus,
     lastEval,
@@ -154,7 +155,8 @@ export default function DashboardRoute() {
 
       {!isLoading && !settings.chesscom.username && (
         <p className="rounded-md border border-amber-800/50 bg-amber-950/30 px-4 py-3 text-sm text-amber-200">
-          Set your Chess.com username in settings to enable game scans (Phase 7).
+          Set your Chess.com username in settings to enable game scans (requires{' '}
+          <code className="text-amber-100">npm run dev</code> or preview for the API proxy).
         </p>
       )}
 
@@ -191,7 +193,7 @@ export default function DashboardRoute() {
                 className="shrink-0"
               />
             )}
-            <TrainingBoard fen={fen} onMove={handleMove} />
+            <TrainingBoard fen={fen} onMove={handleMove} draggableSquares={draggableSquares} />
           </div>
           <div className="flex-1 space-y-4">
             <div>

@@ -18,6 +18,7 @@ function EndgameSession({ presetFromQuery }: { presetFromQuery: string | null })
     selectedPresetId,
     selectPreset,
     fen,
+    draggableSquares,
     turn,
     stats,
     sessionMoveCount,
@@ -70,6 +71,7 @@ function EndgameSession({ presetFromQuery }: { presetFromQuery: string | null })
                 orientation={orientation}
                 onMove={handleMove}
                 allowDragging={!isBoardLocked}
+                draggableSquares={isBoardLocked ? undefined : draggableSquares}
                 boardWidth={440}
               />
             </div>

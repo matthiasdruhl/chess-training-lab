@@ -1,7 +1,8 @@
 import { Chess, type Move, type Square } from 'chess.js';
 import { useCallback, useMemo, useState } from 'react';
+import { parseUci, START_FEN } from '../services/chess/uci';
 
-const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+export { START_FEN };
 
 export function useChessSession(initialFen: string = START_FEN) {
   const [game, setGame] = useState(() => new Chess(initialFen));
@@ -12,6 +13,14 @@ export function useChessSession(initialFen: string = START_FEN) {
   const isGameOver = game.isGameOver();
 
   const legalMoves = useMemo(() => game.moves({ verbose: true }), [game]);
+
+  const draggableSquares = useMemo(() => {
+    const squares = new Set<string>();
+    for (const move of legalMoves) {
+      squares.add(move.from);
+    }
+    return squares;
+  }, [legalMoves]);
 
   const loadFen = useCallback((nextFen: string): boolean => {
     try {
@@ -51,17 +60,11 @@ export function useChessSession(initialFen: string = START_FEN) {
 
   const applyUciMove = useCallback(
     (uci: string): boolean => {
-      if (uci.length < 4) {
+      const parsed = parseUci(uci);
+      if (!parsed) {
         return false;
       }
-      const from = uci.slice(0, 2) as Square;
-      const to = uci.slice(2, 4) as Square;
-      const promoChar = uci[4];
-      const promotion =
-        promoChar === 'q' || promoChar === 'r' || promoChar === 'b' || promoChar === 'n'
-          ? promoChar
-          : undefined;
-      return makeMove(from, to, promotion);
+      return makeMove(parsed.from, parsed.to, parsed.promotion);
     },
     [makeMove],
   );
@@ -72,6 +75,7 @@ export function useChessSession(initialFen: string = START_FEN) {
     history,
     isGameOver,
     legalMoves,
+    draggableSquares,
     loadFen,
     makeMove,
     applyUciMove,

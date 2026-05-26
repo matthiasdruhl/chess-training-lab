@@ -34,11 +34,21 @@ Example data files live in [docs/schemas/examples/](docs/schemas/examples/).
 | 2 | **Out-of-Book Defender** | Practice principled responses when opponents leave your prep |
 | 3 | **Opening → Middlegame Bridge** | Connect end-of-opening positions to concrete middlegame plans |
 | 4 | **Middlegame Simulator** | Play from characteristic pawn structures vs Stockfish |
-| 5 | **Structure Tactics** | Pattern recognition in your opening structures (preview route; full module in Phase 6). |
-| 6 | **Leak Detector** | Turn Chess.com mistakes into repeatable puzzles (coming in Phase 7). |
-| 7 | **Conversion Review** | Fix winning positions you failed to convert (coming in Phase 7). |
+| 5 | **Structure Tactics** | Pattern recognition in your opening structures |
+| 6 | **Leak Detector** | Turn Chess.com mistakes into repeatable puzzles |
+| 7 | **Conversion Review** | Fix winning positions you failed to convert |
 | 8 | **Endgame Drill-Master** | Strict, reset-heavy endgame technique vs Stockfish |
 
 ## Status
 
-**Phase 5 complete** — run `npm install && npm run dev`, then open http://localhost:5173. Module 5 currently exposes a preview route while full Structure Tactics content is scheduled in Phase 6; see [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for upcoming scope.
+**All 8 training modules implemented** — run `npm install && npm run dev`, then open http://localhost:5173.
+
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Local app + Chess.com API proxy |
+| `npm run test:run` | Unit tests (chess UCI, grading, content helpers) |
+| `npm run validate:content` | JSON cross-reference validation |
+
+Chess.com live scans need the dev/preview proxy (no backend in production builds). Tactics content is still thin (~4 puzzles vs 20 target) — see [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) content milestones.
+
+Code review playbooks: [docs/REVIEW_AGENTS.md](docs/REVIEW_AGENTS.md).

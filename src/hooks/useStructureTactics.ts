@@ -95,7 +95,7 @@ export function useStructureTactics(packIdFromQuery: string | null) {
     [currentPuzzleId],
   );
 
-  const { fen, loadFen, makeMove } = useChessSession(currentPuzzle?.fen);
+  const { fen, loadFen, makeMove, draggableSquares } = useChessSession(currentPuzzle?.fen);
 
   const [step, setStep] = useState<StructureTacticsStep>('attempt');
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -354,6 +354,7 @@ export function useStructureTactics(packIdFromQuery: string | null) {
     queueLength: queue.length,
     solvedCount,
     fen,
+    draggableSquares,
     step,
     feedback,
     engineHint,
