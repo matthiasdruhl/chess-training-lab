@@ -5,6 +5,7 @@ import type { DrillStats } from '../types/preset';
 import type { BridgeProgress } from '../types/bridge';
 import type { OutOfBookProgress } from '../types/outOfBook';
 import type { RepertoireProgress } from '../types/repertoire';
+import type { TacticsProgress } from '../types/tactics';
 
 export type AppDB = IDBPDatabase<{
   settings: {
@@ -57,12 +58,12 @@ export type AppDB = IDBPDatabase<{
     };
   };
   tactics_progress: {
-    key: string;
-    value: unknown;
+    key: TacticsProgress['puzzleId'];
+    value: TacticsProgress;
     indexes: {
-      packId: string;
-      status: string;
-      lastAttemptAt: string | null;
+      packId: TacticsProgress['packId'];
+      status: TacticsProgress['status'];
+      lastAttemptAt: TacticsProgress['lastAttemptAt'];
     };
   };
   conversion_missed: {
