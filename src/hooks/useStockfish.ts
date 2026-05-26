@@ -11,6 +11,8 @@ export function useStockfish() {
     engineError,
     enqueueAnalyze,
     enqueueBestMove,
+    applySkillLevel,
+    resetEngineSkill,
     restartEngine,
   } = useEngineControl();
   const { lastEval } = useEngineEval();
@@ -32,6 +34,8 @@ export function useStockfish() {
     engineError,
     analyze,
     bestMove,
+    applySkillLevel,
+    resetEngineSkill,
     restartEngine,
     isThinking: engineStatus === 'thinking',
     isReady: engineStatus === 'ready',

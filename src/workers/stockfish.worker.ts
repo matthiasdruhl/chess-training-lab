@@ -162,6 +162,10 @@ workerScope.addEventListener('message', (event: MessageEvent<WorkerIn>) => {
       engine?.processCommand('stop');
       break;
 
+    case 'setoption':
+      engine?.processCommand(`setoption name ${msg.name} value ${msg.value}`);
+      break;
+
     default:
       break;
   }
