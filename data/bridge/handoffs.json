@@ -1,0 +1,59 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "name": "Opening → Middlegame Handoffs",
+    "updatedAt": "2026-05-24"
+  },
+  "handoffs": [
+    {
+      "id": "bridge-qgd-exchange-karlsbad",
+      "repertoireNodeId": "qg-qgd-exchange",
+      "name": "Exchange QGD → Karlsbad planning",
+      "handoffFen": "r1b1k2r/pp3ppp/2p1p3/3pP3/3P4/2PBPN2/PP3PPP/R2QKB1R w KQkq - 0 12",
+      "color": "white",
+      "recapSan": ["c4", "e6", "Nc3", "Nf6", "cxd5", "cxd5", "Bf4", "Be7", "e3", "O-O"],
+      "recapMoveCount": 4,
+      "planChoices": [
+        {
+          "id": "c-file",
+          "label": "Rc1, pressure the c-file, prepare e4 or kingside play"
+        },
+        {
+          "id": "trade-queens",
+          "label": "Trade queens immediately and accept a dead draw"
+        },
+        {
+          "id": "pawn-storm",
+          "label": "Push a4–a5 without development"
+        }
+      ],
+      "correctPlanId": "c-file",
+      "intentSummary": "You have the Karlsbad structure: space on e5, play for c-file and optional kingside expansion with f3–g4.",
+      "linkedPresetId": "mg-karlsbad-qgd",
+      "tags": ["queens-gambit", "karlsbad"]
+    },
+    {
+      "id": "bridge-caro-advance-tension",
+      "repertoireNodeId": "ck-classical",
+      "name": "Classical Caro → central tension",
+      "handoffFen": "r1bqk2r/pp1n1ppp/2b1p3/3pP3/3P4/2N1PN2/PP3PPP/R1BQ1RK1 b kq - 0 10",
+      "color": "black",
+      "recapSan": ["e4", "c6", "d4", "d5", "Nc3", "dxe4", "Nxe4", "Nd7", "Nf6", "e6"],
+      "recapMoveCount": 4,
+      "planChoices": [
+        {
+          "id": "c5-break",
+          "label": "Prepare ...c5 to challenge the center"
+        },
+        {
+          "id": "passive",
+          "label": "Wait without ...c5 and allow White full space"
+        }
+      ],
+      "correctPlanId": "c5-break",
+      "intentSummary": "Challenge White's space with a timed ...c5; rooks belong on c8 and e8.",
+      "linkedPresetId": "mg-caro-advance",
+      "tags": ["caro-kann", "central-tension"]
+    }
+  ]
+}

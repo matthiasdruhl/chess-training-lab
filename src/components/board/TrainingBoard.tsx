@@ -19,6 +19,7 @@ export function TrainingBoard({
   function handlePieceDrop({
     sourceSquare,
     targetSquare,
+    piece,
   }: {
     piece: { isSparePiece: boolean; position: string; pieceType: string };
     sourceSquare: string;
@@ -27,7 +28,13 @@ export function TrainingBoard({
     if (!onMove || !targetSquare) {
       return false;
     }
-    return onMove(sourceSquare as Square, targetSquare as Square);
+    const normalizedPieceType = piece.pieceType.toLowerCase();
+    const promotionPieceTypes = ['q', 'r', 'b', 'n'] as const;
+    const promotion = promotionPieceTypes.includes(normalizedPieceType as (typeof promotionPieceTypes)[number])
+      ? (normalizedPieceType as 'q' | 'r' | 'b' | 'n')
+      : undefined;
+
+    return onMove(sourceSquare as Square, targetSquare as Square, promotion);
   }
 
   return (

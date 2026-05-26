@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
   useCallback,
@@ -8,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { ENGINE_SKILL_MAX } from '../constants/engine';
 import { defaultMovetimeLimits } from '../services/engine/limits';
 import { EngineQueue } from '../services/engine/queue';
 import type {
@@ -25,6 +27,9 @@ interface EngineControlValue {
   engineError: string | null;
   enqueueAnalyze: (fen: string, limits?: GoLimits) => Promise<AnalysisResult>;
   enqueueBestMove: (fen: string, limits?: GoLimits) => Promise<string>;
+  setEngineOption: (name: string, value: string | number | boolean) => void;
+  applySkillLevel: (skillLevel: number) => void;
+  resetEngineSkill: () => void;
   restartEngine: () => void;
 }
 
@@ -155,8 +160,11 @@ export function EngineProvider({ children }: { children: ReactNode }) {
   }, [attachQueue, clearEvalSchedule]);
 
   useEffect(() => {
-    initWorker();
+    const initTimer = setTimeout(() => {
+      initWorker();
+    }, 0);
     return () => {
+      clearTimeout(initTimer);
       clearEvalSchedule();
       queueRef.current?.destroy();
       workerRef.current?.terminate();
@@ -197,15 +205,48 @@ export function EngineProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const setEngineOption = useCallback((name: string, value: string | number | boolean) => {
+    const worker = workerRef.current;
+    if (!worker || !initSentRef.current) {
+      return;
+    }
+    worker.postMessage({ type: 'setoption', name, value } satisfies WorkerIn);
+  }, []);
+
+  const applySkillLevel = useCallback(
+    (skillLevel: number) => {
+      const clamped = Math.max(0, Math.min(ENGINE_SKILL_MAX, skillLevel));
+      setEngineOption('Skill Level', clamped);
+      setEngineOption('UCI_LimitStrength', clamped < ENGINE_SKILL_MAX);
+    },
+    [setEngineOption],
+  );
+
+  const resetEngineSkill = useCallback(() => {
+    applySkillLevel(ENGINE_SKILL_MAX);
+  }, [applySkillLevel]);
+
   const controlValue = useMemo(
     () => ({
       engineStatus,
       engineError,
       enqueueAnalyze,
       enqueueBestMove,
+      setEngineOption,
+      applySkillLevel,
+      resetEngineSkill,
       restartEngine,
     }),
-    [engineStatus, engineError, enqueueAnalyze, enqueueBestMove, restartEngine],
+    [
+      engineStatus,
+      engineError,
+      enqueueAnalyze,
+      enqueueBestMove,
+      setEngineOption,
+      applySkillLevel,
+      resetEngineSkill,
+      restartEngine,
+    ],
   );
 
   const evalValue = useMemo(() => ({ lastEval }), [lastEval]);

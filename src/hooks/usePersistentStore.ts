@@ -16,10 +16,7 @@ export function usePersistentStore<T>(
   const [isLoading, setIsLoading] = useState(true);
 
   const valueRef = useRef(value);
-  valueRef.current = value;
-
   const isLoadingRef = useRef(isLoading);
-  isLoadingRef.current = isLoading;
 
   const savesAfterMountRef = useRef(0);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -66,6 +63,14 @@ export function usePersistentStore<T>(
   );
 
   useEffect(() => {
+    valueRef.current = value;
+  }, [value]);
+
+  useEffect(() => {
+    isLoadingRef.current = isLoading;
+  }, [isLoading]);
+
+  useEffect(() => {
     const generation = ++loadGenerationRef.current;
     savesAfterMountRef.current = 0;
     let cancelled = false;
@@ -90,7 +95,6 @@ export function usePersistentStore<T>(
       }
     }
 
-    setIsLoading(true);
     void hydrate();
 
     return () => {

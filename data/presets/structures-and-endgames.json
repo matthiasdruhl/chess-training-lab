@@ -1,0 +1,126 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "name": "Middlegame Structures & Core Endgames",
+    "updatedAt": "2026-05-24"
+  },
+  "presets": [
+    {
+      "id": "mg-karlsbad-qgd",
+      "module": "middlegame",
+      "name": "Karlsbad Pawn Structure (QGD family)",
+      "fen": "r1b1k2r/pp3ppp/2p1p3/3pP3/3P4/2PBPN2/PP3PPP/R2QKB1R w KQkq - 0 12",
+      "sideToTrain": "white",
+      "openingFamily": "queens-gambit",
+      "structureTag": "karlsbad",
+      "plans": [
+        "Rook c1, pressure c-file",
+        "Knight maneuver Nf3–e5 or f4",
+        "Kingside expansion f3–g4 when justified"
+      ],
+      "objective": "Play for kingside attack without weakening the d4/e5 pawn chain.",
+      "stockfish": {
+        "role": "opponent",
+        "skillLevel": 20,
+        "movetimeMs": 2000,
+        "depth": null
+      },
+      "sessionDefaults": {
+        "resetOnMistake": false,
+        "maxMoves": 40
+      },
+      "tags": ["pawn-structure", "white"]
+    },
+    {
+      "id": "mg-caro-advance",
+      "module": "middlegame",
+      "name": "Caro Advance — Central Tension",
+      "fen": "r1bqk2r/pp1n1ppp/2b1p3/3pP3/3P4/2N1PN2/PP3PPP/R1BQ1RK1 b kq - 0 10",
+      "sideToTrain": "black",
+      "openingFamily": "caro-kann",
+      "structureTag": "caro-advance",
+      "plans": ["...c5 break", "...Nc6–a5", "Rook c8"],
+      "objective": "Challenge White's space with a well-timed ...c5.",
+      "stockfish": {
+        "role": "opponent",
+        "skillLevel": 20,
+        "movetimeMs": 2000,
+        "depth": null
+      },
+      "sessionDefaults": {
+        "resetOnMistake": false,
+        "maxMoves": 40
+      },
+      "tags": ["pawn-structure", "black"]
+    },
+    {
+      "id": "eg-krk-basic",
+      "module": "endgame",
+      "name": "K+R vs K — Basic Mate",
+      "fen": "k7/8/8/8/8/3K4/8/3R4 w - - 0 1",
+      "sideToTrain": "white",
+      "openingFamily": null,
+      "endgameTheme": "rook-checkmate",
+      "plans": ["Cut off the king", "Give checking moves", "Walk the king down"],
+      "objective": "Deliver checkmate without stalemate.",
+      "stockfish": {
+        "role": "defender",
+        "skillLevel": 20,
+        "movetimeMs": 500,
+        "depth": 12
+      },
+      "sessionDefaults": {
+        "resetOnMistake": true,
+        "resetOnDraw": true,
+        "maxMoves": 30
+      },
+      "tags": ["basic-technique", "must-know"]
+    },
+    {
+      "id": "eg-opposition",
+      "module": "endgame",
+      "name": "Opposition — King & Pawn",
+      "fen": "8/8/2k5/8/2K5/8/3P4/8 w - - 0 1",
+      "sideToTrain": "white",
+      "openingFamily": null,
+      "endgameTheme": "opposition",
+      "plans": ["Take the opposition", "Outflank", "Promote"],
+      "objective": "Win the pawn ending using opposition.",
+      "stockfish": {
+        "role": "defender",
+        "skillLevel": 20,
+        "movetimeMs": 500,
+        "depth": 12
+      },
+      "sessionDefaults": {
+        "resetOnMistake": true,
+        "resetOnDraw": true,
+        "maxMoves": 20
+      },
+      "tags": ["king-and-pawn"]
+    },
+    {
+      "id": "eg-caro-rook",
+      "module": "endgame",
+      "name": "Caro-Kann Rook Endgame — 7th Rank",
+      "fen": "4r3/pp3pk1/2p1p1p1/8/8/2P1P1P1/PP3PK1/2R5 w - - 0 1",
+      "sideToTrain": "white",
+      "openingFamily": "caro-kann",
+      "endgameTheme": "rook-endgame",
+      "plans": ["Rook on the 7th", "Kingside entry", "Target g6/f7 weaknesses"],
+      "objective": "Convert a structural bind without allowing perpetual check.",
+      "stockfish": {
+        "role": "defender",
+        "skillLevel": 20,
+        "movetimeMs": 1500,
+        "depth": 16
+      },
+      "sessionDefaults": {
+        "resetOnMistake": true,
+        "resetOnDraw": true,
+        "maxMoves": 50
+      },
+      "tags": ["caro-kann", "rook-endgame"]
+    }
+  ]
+}

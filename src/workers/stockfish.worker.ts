@@ -79,11 +79,9 @@ function handleUciLine(line: string): void {
 
   if (trimmed.startsWith('bestmove ')) {
     const uci = trimmed.split(/\s+/)[1];
-    if (uci && uci !== '(none)') {
+    if (uci) {
       const ponder = trimmed.split(/\s+/)[3];
       post({ type: 'bestmove', uci, ponder });
-    } else {
-      post({ type: 'error', message: 'Engine returned no legal move.' });
     }
   }
 }
@@ -160,6 +158,10 @@ workerScope.addEventListener('message', (event: MessageEvent<WorkerIn>) => {
 
     case 'stop':
       engine?.processCommand('stop');
+      break;
+
+    case 'setoption':
+      engine?.processCommand(`setoption name ${msg.name} value ${msg.value}`);
       break;
 
     default:
