@@ -1,18 +1,32 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import type { Square } from 'chess.js';
+import { EvalBar } from '../components/board/EvalBar';
 import { TrainingBoard } from '../components/board/TrainingBoard';
 import { SettingsModal } from '../components/layout/SettingsModal';
 import { MODULES } from '../constants/modules';
 import { useAppContext } from '../context/AppContext';
 import { useChessSession } from '../hooks/useChessSession';
+import { useStockfish } from '../hooks/useStockfish';
 
 export default function DashboardRoute() {
   const { settings, isLoading, updateUsername } = useAppContext();
-  const { fen, history, loadFen, makeMove } = useChessSession();
+  const { fen, turn, history, loadFen, makeMove, applyUciMove } = useChessSession();
+  const {
+    engineStatus,
+    lastEval,
+    engineError,
+    analyze,
+    bestMove,
+    restartEngine,
+    isThinking,
+  } = useStockfish();
   const [fenInput, setFenInput] = useState('');
   const [fenError, setFenError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const showEvalBar = lastEval !== null || isThinking;
 
   function handleLoadFen() {
     const trimmed = fenInput.trim();
@@ -31,6 +45,31 @@ export default function DashboardRoute() {
   function handleMove(from: Square, to: Square, promotion?: 'q' | 'r' | 'b' | 'n') {
     return makeMove(from, to, promotion);
   }
+
+  async function handleAnalyze() {
+    setActionError(null);
+    try {
+      await analyze(fen);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Analysis failed.');
+    }
+  }
+
+  async function handleEngineMove() {
+    setActionError(null);
+    try {
+      const uci = await bestMove(fen);
+      const applied = applyUciMove(uci);
+      if (!applied) {
+        setActionError(`Engine suggested illegal move: ${uci}`);
+      }
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Engine move failed.');
+    }
+  }
+
+  const engineBusy =
+    isThinking || engineStatus === 'idle' || engineStatus === 'error';
 
   return (
     <div className="space-y-8">
@@ -61,7 +100,16 @@ export default function DashboardRoute() {
       <section className="rounded-lg border border-slate-800 bg-slate-900/50 p-4">
         <h2 className="mb-4 text-lg font-medium text-white">Board preview</h2>
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-          <TrainingBoard fen={fen} onMove={handleMove} />
+          <div className="flex items-start gap-3">
+            {showEvalBar && (
+              <EvalBar
+                scoreCp={lastEval?.scoreCp ?? 0}
+                sideToMove={turn}
+                className="shrink-0"
+              />
+            )}
+            <TrainingBoard fen={fen} onMove={handleMove} />
+          </div>
           <div className="flex-1 space-y-4">
             <div>
               <label htmlFor="fen-input" className="mb-1 block text-sm text-slate-300">
@@ -88,6 +136,52 @@ export default function DashboardRoute() {
                 <p className="mt-1 text-sm text-red-400">{fenError}</p>
               )}
             </div>
+
+            <div className="rounded-md border border-slate-800 bg-slate-950/60 p-4">
+              <h3 className="mb-3 text-sm font-medium text-slate-200">Engine smoke test</h3>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleAnalyze()}
+                  disabled={engineBusy}
+                  className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Analyze
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleEngineMove()}
+                  disabled={engineBusy}
+                  className="rounded-md bg-indigo-700 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Engine move
+                </button>
+                {engineStatus === 'error' && (
+                  <button
+                    type="button"
+                    onClick={restartEngine}
+                    className="rounded-md border border-red-700 px-4 py-2 text-sm font-medium text-red-300 hover:bg-red-950/50"
+                  >
+                    Restart engine
+                  </button>
+                )}
+              </div>
+              {engineError && engineStatus === 'error' && (
+                <p className="mt-2 text-sm text-red-400">{engineError}</p>
+              )}
+              {lastEval && (
+                <p className="mt-3 text-sm text-slate-400">
+                  Depth {lastEval.depth} · best {lastEval.bestMoveUci}
+                  {lastEval.pv.length > 0 && (
+                    <> · PV {lastEval.pv.slice(0, 4).join(' ')}</>
+                  )}
+                </p>
+              )}
+              {actionError && (
+                <p className="mt-2 text-sm text-red-400">{actionError}</p>
+              )}
+            </div>
+
             <div>
               <h3 className="mb-1 text-sm font-medium text-slate-300">Move history</h3>
               <p className="text-sm text-slate-400">
