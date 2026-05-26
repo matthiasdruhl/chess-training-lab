@@ -26,12 +26,12 @@ const MODULES = [
   },
   {
     title: 'Leak Detector',
-    description: 'Turn Chess.com mistakes into repeatable puzzles (coming in Phase 7).',
+    description: 'Turn Chess.com mistakes into repeatable puzzles.',
     path: '/leaks',
   },
   {
     title: 'Conversion Review',
-    description: 'Fix winning positions you failed to convert (coming in Phase 7).',
+    description: 'Fix winning positions you failed to convert.',
     path: '/conversion',
   },
   {

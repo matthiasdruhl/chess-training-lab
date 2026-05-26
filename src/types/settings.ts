@@ -4,6 +4,7 @@ export interface AppSettings {
   chesscom: {
     username: string;
     defaultMonthsToFetch: number;
+    lastScanAt?: string | null;
   };
   leakDetector: {
     minSwingCp: number;

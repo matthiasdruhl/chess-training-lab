@@ -1,0 +1,24 @@
+{
+  "games": [
+    {
+      "url": "https://api.chess.com/pub/player/testuser/game/2025/05/fixture-blunder",
+      "pgn": "[Event \"Fixture Blunder Game\"]\n[Site \"Chess.com\"]\n[Date \"2025.05.15\"]\n[White \"testuser\"]\n[Black \"opponent1\"]\n[Result \"0-1\"]\n[TimeClass \"rapid\"]\n[ECO \"D06\"]\n[Opening \"Queen's Gambit Declined\"]\n\n1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3 O-O 6. Nf3 Nbd7 7. Bd3 c5 8. cxd5 Nxd5 9. Bxe7 Qxe7 10. Nxd5 exd5 11. O-O c4 12. Bc2 Re8 13. Qd2 Bf5 14. Bxf5 Qxf5 15. Rfe1 Qg6 16. h3 h5 17. Kh2 h4 18. Kg1 Qxg2# 0-1",
+      "time_control": "600+5",
+      "time_class": "rapid",
+      "end_time": 1747324800,
+      "rated": true,
+      "white": { "username": "testuser", "result": "checkmated", "rating": 1600 },
+      "black": { "username": "opponent1", "result": "win", "rating": 1580 }
+    },
+    {
+      "url": "https://api.chess.com/pub/player/testuser/game/2025/05/fixture-conversion",
+      "pgn": "[Event \"Fixture Conversion Game\"]\n[Site \"Chess.com\"]\n[Date \"2025.05.10\"]\n[White \"testuser\"]\n[Black \"opponent2\"]\n[Result \"1/2-1/2\"]\n[TimeClass \"rapid\"]\n[ECO \"D35\"]\n[Opening \"Queen's Gambit Declined\"]\n\n1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. cxd5 exd5 5. Bg5 Be7 6. e3 O-O 7. Bd3 c6 8. Nf3 Nbd7 9. O-O Re8 10. Rc1 Nf8 11. Bb1 Bd7 12. Ne5 Bxe5 13. dxe5 Ne4 14. Nxe4 dxe4 15. Bxe4 Qxd1 16. Rfxd1 Rxe5 17. Bxh7+ Kxh7 18. Rd7 Bf5 19. Rxb7 Rae8 20. Rc5 Re6 21. Rxf5 Rxf5 22. Rxf5 g6 23. Rf3 Kg7 24. g3 Re5 25. Kg2 a5 26. h4 Re6 27. Kh3 f5 28. g4 fxg4+ 29. Kxg4 Kf6 30. f4 Re4 31. Kf3 Rxf4+ 32. Ke3 Rf5 33. Rxf5+ gxf5 34. Kf4 Kf6 35. Kxf5 Kf7 36. Ke5 Ke7 37. Kd5 Kd7 38. Kc5 Kc7 39. Kb5 Kb7 40. Ka5 Ka7 41. a4 Kb7 42. Kb5 Ka7 43. Kc5 Kb7 44. Kd5 Ka7 45. Ke5 Ka8 46. Kd6 Ka7 47. Kc5 Ka8 48. Kb6 Kb8 49. a5 Ka8 50. Kc6 Kb8 51. Kd7 Ka8 52. Kc7 Ka7 53. Kc8 Ka8 54. Kb6 Kb8 55. a6 Ka8 56. Ka5 Kb8 57. Ka4 Ka8 58. Ka3 Ka7 59. Ka2 Ka8 60. Ka1 Ka7 61. a7 Kxa7 62. Kb2 Kb7 63. Kc3 Kc7 64. Kd4 Kd7 65. Ke5 Ke7 66. Kf5 Kf7 67. Kg5 Kg7 68. Kh5 Kh7 69. Kg5 Kg7 70. Kh5 Kh7 1/2-1/2",
+      "time_control": "600+5",
+      "time_class": "rapid",
+      "end_time": 1746892800,
+      "rated": true,
+      "white": { "username": "testuser", "result": "draw", "rating": 1620 },
+      "black": { "username": "opponent2", "result": "draw", "rating": 1610 }
+    }
+  ]
+}

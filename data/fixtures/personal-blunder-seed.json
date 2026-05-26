@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "source": {
+    "platform": "chess.com",
+    "username": "your_chesscom_username",
+    "gameId": "https://api.chess.com/pub/player/your_chesscom_username/game/2025/05/abc123",
+    "gameUrl": "https://www.chess.com/game/live/123456789",
+    "playedAt": "2026-05-20T18:42:11Z",
+    "timeClass": "rapid",
+    "result": "loss",
+    "userColor": "white",
+    "opening": {
+      "eco": "D35",
+      "name": "Queen's Gambit Declined"
+    },
+    "filterMatched": {
+      "repertoireSide": "white-queens-gambit",
+      "firstMovesSan": ["d4", "d5", "c4"]
+    }
+  },
+  "position": {
+    "fen": "r1bqkb1r/pp2nppp/2n1p3/3p4/3P4/2N2N2/PP2PPPP/R1BQKB1R w KQkq - 4 7",
+    "sideToMove": "white",
+    "moveNumber": 7,
+    "ply": 13,
+    "playedMove": { "san": "Bd3?", "uci": "f1d3" },
+    "pvContextSan": ["d4", "d5", "c4", "e6", "Nc3", "Nf6", "Bd3"]
+  },
+  "analysis": {
+    "evalBeforeCp": 45,
+    "evalAfterCp": -280,
+    "swingCp": 325,
+    "bestMove": { "san": "cxd5", "uci": "c4d5" },
+    "secondBestGapCp": 180,
+    "depth": 18,
+    "movetimeMs": 800,
+    "classification": "blunder",
+    "engine": { "name": "stockfish", "jsVersion": "17.x" }
+  },
+  "quiz": {
+    "prompt": "Find the best move you missed in your rapid game.",
+    "showPlayedMoveAsWrong": true,
+    "difficulty": "hard"
+  },
+  "userState": {
+    "status": "new",
+    "attempts": 0,
+    "correctAttempts": 0,
+    "lastAttemptAt": null,
+    "masteredAt": null,
+    "notes": ""
+  },
+  "tags": ["queens-gambit", "opening-to-middlegame", "rapid-leak"]
+}

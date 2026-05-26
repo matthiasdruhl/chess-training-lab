@@ -11,9 +11,12 @@ import { useStockfish } from '../hooks/useStockfish';
 import { loadRepertoire } from '../services/repertoire/loadRepertoire';
 import { flattenTrainableNodes } from '../services/repertoire/treeUtils';
 import { getProgress, isProgressDue } from '../storage/progressRepo';
+import { ScanPanel } from '../components/review/ScanPanel';
+import { listOpenBlunders } from '../storage/blundersRepo';
+import { listOpenConversions } from '../storage/conversionRepo';
 
 export default function DashboardRoute() {
-  const { settings, isLoading, updateUsername } = useAppContext();
+  const { settings, isLoading, updateSettings } = useAppContext();
   const { fen, turn, history, loadFen, makeMove, applyUciMove } = useChessSession();
   const {
     engineStatus,
@@ -29,6 +32,8 @@ export default function DashboardRoute() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [linesDueCount, setLinesDueCount] = useState<number | null>(null);
+  const [blunderCount, setBlunderCount] = useState<number | null>(null);
+  const [conversionCount, setConversionCount] = useState<number | null>(null);
 
   const trainableNodes = useMemo(() => {
     const repertoire = loadRepertoire();
@@ -69,6 +74,8 @@ export default function DashboardRoute() {
     }
 
     void loadDueCount();
+    void listOpenBlunders().then((items) => setBlunderCount(items.length));
+    void listOpenConversions().then((items) => setConversionCount(items.length));
     return () => {
       cancelled = true;
     };
@@ -166,6 +173,15 @@ export default function DashboardRoute() {
         <p className="mt-1 text-sm text-slate-500">
           {linesDueCount === 1 ? 'line due' : 'lines due'}
         </p>
+      </section>
+
+      <section className="rounded-lg border border-slate-800 bg-slate-900/50 p-4">
+        <h2 className="mb-4 text-lg font-medium text-white">Chess.com review</h2>
+        <div className="mb-4 flex flex-wrap gap-6 text-sm text-slate-300">
+          <span>Open blunders: {blunderCount ?? '…'}</span>
+          <span>Open conversions: {conversionCount ?? '…'}</span>
+        </div>
+        <ScanPanel />
       </section>
 
       <section className="rounded-lg border border-slate-800 bg-slate-900/50 p-4">
@@ -289,10 +305,10 @@ export default function DashboardRoute() {
 
       <SettingsModal
         isOpen={settingsOpen}
-        username={settings.chesscom.username}
+        settings={settings}
         isLoading={isLoading}
         onClose={() => setSettingsOpen(false)}
-        onSave={updateUsername}
+        onSave={updateSettings}
       />
     </div>
   );
