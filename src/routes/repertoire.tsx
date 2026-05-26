@@ -8,8 +8,12 @@ import { useRepertoireTrainer } from '../hooks/useRepertoireTrainer';
 import { listDeviations } from '../services/out-of-book/loadDeviations';
 import { listHandoffs } from '../services/bridge/loadHandoffs';
 import { useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 export default function RepertoireRoute() {
+  const [params] = useSearchParams();
+  const nodeIdFromQuery = params.get('node');
+
   const {
     repertoire,
     selectedColor,
@@ -31,7 +35,7 @@ export default function RepertoireRoute() {
     handleMove,
     markKnown,
     showHint,
-  } = useRepertoireTrainer();
+  } = useRepertoireTrainer(nodeIdFromQuery);
 
   const boardOrientation = selectedColor;
 

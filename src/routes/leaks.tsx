@@ -1,20 +1,30 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ModuleHeader } from '../components/layout/ModuleHeader';
 import { BlunderQueueList } from '../components/leaks/BlunderQueueList';
 import { GameReplayPanel } from '../components/review/GameReplayPanel';
+import { QueueFilters } from '../components/review/QueueFilters';
 import { ReviewQuizPanel } from '../components/review/ReviewQuizPanel';
 import { ScanPanel } from '../components/review/ScanPanel';
 import { useBlunderQuiz } from '../hooks/useBlunderQuiz';
+import { useQueueFilters } from '../hooks/useQueueFilters';
 import { deleteBlunder, listAllBlunders } from '../storage/blundersRepo';
 
 type Tab = 'scan' | 'queue' | 'quiz';
 
+function parseTab(value: string | null): Tab {
+  if (value === 'scan' || value === 'quiz' || value === 'queue') {
+    return value;
+  }
+  return 'queue';
+}
+
 export default function LeaksRoute() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const quizId = searchParams.get('id') ?? undefined;
-  const [tab, setTab] = useState<Tab>('queue');
+  const tab = parseTab(searchParams.get('tab'));
   const [allBlunders, setAllBlunders] = useState<Awaited<ReturnType<typeof listAllBlunders>>>([]);
+  const [isQueueLoading, setIsQueueLoading] = useState(false);
 
   const {
     queue,
@@ -29,13 +39,18 @@ export default function LeaksRoute() {
   } = useBlunderQuiz(quizId);
 
   const loadAll = useCallback(async () => {
-    const items = await listAllBlunders();
-    items.sort(
-      (a, b) =>
-        new Date(b.source.playedAt).getTime() -
-        new Date(a.source.playedAt).getTime(),
-    );
-    setAllBlunders(items);
+    setIsQueueLoading(true);
+    try {
+      const items = await listAllBlunders();
+      items.sort(
+        (a, b) =>
+          new Date(b.source.playedAt).getTime() -
+          new Date(a.source.playedAt).getTime(),
+      );
+      setAllBlunders(items);
+    } finally {
+      setIsQueueLoading(false);
+    }
   }, []);
 
   const handleDelete = useCallback(
@@ -47,14 +62,41 @@ export default function LeaksRoute() {
     [loadAll, refreshQueue],
   );
 
+  const {
+    status: queueStatus,
+    tag: queueTag,
+    availableTags,
+    filteredItems,
+    setStatus: setQueueStatus,
+    setTag: setQueueTag,
+  } = useQueueFilters(allBlunders);
+
+  const displayBlunders = useMemo(() => {
+    if (isQueueLoading) {
+      return [];
+    }
+    if (allBlunders.length > 0) {
+      return filteredItems;
+    }
+    return queue;
+  }, [allBlunders, filteredItems, isQueueLoading, queue]);
+
   const handleTabChange = useCallback(
     (next: Tab) => {
-      setTab(next);
+      setSearchParams((prev) => {
+        const params = new URLSearchParams(prev);
+        if (next === 'queue') {
+          params.delete('tab');
+        } else {
+          params.set('tab', next);
+        }
+        return params;
+      });
       if (next === 'queue') {
         void loadAll();
       }
     },
-    [loadAll],
+    [loadAll, setSearchParams],
   );
 
   useEffect(() => {
@@ -92,15 +134,26 @@ export default function LeaksRoute() {
       {tab === 'queue' && (
         <section className="space-y-4">
           <h2 className="text-lg font-medium text-white">Blunder queue</h2>
-          <BlunderQueueList
-            items={allBlunders.length > 0 ? allBlunders : queue}
-            selectedId={current?.id}
-            onSelect={(id) => {
-              void selectBlunder(id);
-              setTab('quiz');
-            }}
-            onDelete={(id) => void handleDelete(id)}
+          <QueueFilters
+            status={queueStatus}
+            tag={queueTag}
+            availableTags={availableTags}
+            onStatusChange={setQueueStatus}
+            onTagChange={setQueueTag}
           />
+          {isQueueLoading ? (
+            <p className="text-sm text-slate-400">Loading queue…</p>
+          ) : (
+            <BlunderQueueList
+              items={displayBlunders}
+              selectedId={current?.id}
+              onSelect={(id) => {
+                void selectBlunder(id);
+                handleTabChange('quiz');
+              }}
+              onDelete={(id) => void handleDelete(id)}
+            />
+          )}
         </section>
       )}
 

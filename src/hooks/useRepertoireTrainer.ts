@@ -56,7 +56,7 @@ function computeNextReviewAt(record: RepertoireProgress, now: Date): string | nu
   return next.toISOString();
 }
 
-export function useRepertoireTrainer() {
+export function useRepertoireTrainer(initialNodeIdFromQuery: string | null = null) {
   const repertoire = loadRepertoire();
   const [selectedColor, setSelectedColor] = useState<RepertoireColor>('white');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -86,6 +86,7 @@ export function useRepertoireTrainer() {
   const pendingProgressRef = useRef<Record<string, RepertoireProgress>>({});
   const autoPlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const strictResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialNodeHandledRef = useRef(false);
 
   const flushProgressWrites = useCallback(() => {
     if (debounceRef.current) {
@@ -285,6 +286,20 @@ export function useRepertoireTrainer() {
     },
     [autoPlayOpponentMoves, flushProgressWrites, loadFen, repertoire],
   );
+
+  useEffect(() => {
+    if (!initialNodeIdFromQuery || initialNodeHandledRef.current) {
+      return;
+    }
+
+    const entry = findNodeById(repertoire, initialNodeIdFromQuery);
+    if (!entry || entry.node.pathUci.length === 0) {
+      return;
+    }
+
+    initialNodeHandledRef.current = true;
+    selectNode(initialNodeIdFromQuery);
+  }, [initialNodeIdFromQuery, repertoire, selectNode]);
 
   const completeLine = useCallback(() => {
     if (!selectedNode || !selectedRoot) {

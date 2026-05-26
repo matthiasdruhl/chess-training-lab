@@ -1,22 +1,31 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ModuleHeader } from '../components/layout/ModuleHeader';
 import { ConversionQueueList } from '../components/conversion/ConversionQueueList';
 import { GameReplayPanel } from '../components/review/GameReplayPanel';
+import { QueueFilters } from '../components/review/QueueFilters';
 import { ReviewQuizPanel } from '../components/review/ReviewQuizPanel';
 import { useConversionQuiz } from '../hooks/useConversionQuiz';
+import { useQueueFilters } from '../hooks/useQueueFilters';
 import { deleteConversion, listAllConversions } from '../storage/conversionRepo';
-import { Link } from 'react-router-dom';
 
 type Tab = 'queue' | 'quiz';
 
+function parseTab(value: string | null): Tab {
+  if (value === 'quiz' || value === 'queue') {
+    return value;
+  }
+  return 'queue';
+}
+
 export default function ConversionRoute() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const quizId = searchParams.get('id') ?? undefined;
-  const [tab, setTab] = useState<Tab>('queue');
+  const tab = parseTab(searchParams.get('tab'));
   const [allConversions, setAllConversions] = useState<
     Awaited<ReturnType<typeof listAllConversions>>
   >([]);
+  const [isQueueLoading, setIsQueueLoading] = useState(false);
 
   const {
     queue,
@@ -31,13 +40,18 @@ export default function ConversionRoute() {
   } = useConversionQuiz(quizId);
 
   const loadAll = useCallback(async () => {
-    const items = await listAllConversions();
-    items.sort(
-      (a, b) =>
-        new Date(b.source.playedAt).getTime() -
-        new Date(a.source.playedAt).getTime(),
-    );
-    setAllConversions(items);
+    setIsQueueLoading(true);
+    try {
+      const items = await listAllConversions();
+      items.sort(
+        (a, b) =>
+          new Date(b.source.playedAt).getTime() -
+          new Date(a.source.playedAt).getTime(),
+      );
+      setAllConversions(items);
+    } finally {
+      setIsQueueLoading(false);
+    }
   }, []);
 
   const handleDelete = useCallback(
@@ -47,6 +61,43 @@ export default function ConversionRoute() {
       await refreshQueue();
     },
     [loadAll, refreshQueue],
+  );
+
+  const {
+    status: queueStatus,
+    tag: queueTag,
+    availableTags,
+    filteredItems,
+    setStatus: setQueueStatus,
+    setTag: setQueueTag,
+  } = useQueueFilters(allConversions);
+
+  const displayConversions = useMemo(() => {
+    if (isQueueLoading) {
+      return [];
+    }
+    if (allConversions.length > 0) {
+      return filteredItems;
+    }
+    return queue;
+  }, [allConversions, filteredItems, isQueueLoading, queue]);
+
+  const handleTabChange = useCallback(
+    (next: Tab) => {
+      setSearchParams((prev) => {
+        const params = new URLSearchParams(prev);
+        if (next === 'queue') {
+          params.delete('tab');
+        } else {
+          params.set('tab', next);
+        }
+        return params;
+      });
+      if (next === 'queue') {
+        void loadAll();
+      }
+    },
+    [loadAll, setSearchParams],
   );
 
   useEffect(() => {
@@ -72,12 +123,7 @@ export default function ConversionRoute() {
           <button
             key={t}
             type="button"
-            onClick={() => {
-              setTab(t);
-              if (t === 'queue') {
-                void loadAll();
-              }
-            }}
+            onClick={() => handleTabChange(t)}
             className={`rounded-md px-3 py-1.5 text-sm capitalize ${
               tab === t
                 ? 'bg-slate-100 text-slate-900'
@@ -92,15 +138,26 @@ export default function ConversionRoute() {
       {tab === 'queue' && (
         <section className="space-y-4">
           <h2 className="text-lg font-medium text-white">Conversion queue</h2>
-          <ConversionQueueList
-            items={allConversions.length > 0 ? allConversions : queue}
-            selectedId={current?.id}
-            onSelect={(id) => {
-              void selectConversion(id);
-              setTab('quiz');
-            }}
-            onDelete={(id) => void handleDelete(id)}
+          <QueueFilters
+            status={queueStatus}
+            tag={queueTag}
+            availableTags={availableTags}
+            onStatusChange={setQueueStatus}
+            onTagChange={setQueueTag}
           />
+          {isQueueLoading ? (
+            <p className="text-sm text-slate-400">Loading queue…</p>
+          ) : (
+            <ConversionQueueList
+              items={displayConversions}
+              selectedId={current?.id}
+              onSelect={(id) => {
+                void selectConversion(id);
+                handleTabChange('quiz');
+              }}
+              onDelete={(id) => void handleDelete(id)}
+            />
+          )}
         </section>
       )}
 
