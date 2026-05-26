@@ -1,0 +1,72 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "name": "Structure Tactics — QG & Caro",
+    "updatedAt": "2026-05-24"
+  },
+  "packs": [
+    {
+      "id": "pack-qg-c-file",
+      "name": "QG — C-file & minority attack",
+      "description": "Tactics from Exchange and Karlsbad structures",
+      "structureTag": "karlsbad",
+      "openingFamily": "queens-gambit",
+      "puzzleIds": ["tac-qg-001", "tac-qg-002"]
+    },
+    {
+      "id": "pack-caro-c5",
+      "name": "Caro — ...c5 break timing",
+      "description": "Central breaks and piece activity",
+      "structureTag": "caro-advance",
+      "openingFamily": "caro-kann",
+      "puzzleIds": ["tac-ck-001"]
+    }
+  ],
+  "puzzles": [
+    {
+      "id": "tac-qg-001",
+      "packId": "pack-qg-c-file",
+      "name": "Rook invasion on c7",
+      "fen": "r1b1k2r/pp2rppp/2p1p3/3p4/3P4/2PBPN2/PP1R2PP/2Q1KB1R b KQ - 0 14",
+      "sideToMove": "black",
+      "solutionUci": "e8e7",
+      "solutionSan": "Re7",
+      "theme": "Defensive resource vs c-file pressure",
+      "structureTag": "karlsbad",
+      "difficulty": 2,
+      "themeHint": "Look at what happens if White plays Rc7.",
+      "relatedPresetId": "mg-karlsbad-qgd",
+      "tags": ["c-file", "defense"]
+    },
+    {
+      "id": "tac-qg-002",
+      "packId": "pack-qg-c-file",
+      "name": "Break with e4",
+      "fen": "r1bqk2r/ppp2ppp/2n1p3/3p4/3P4/2PBPN2/PP2QPPP/R3R1K1 w kq - 0 13",
+      "sideToMove": "white",
+      "solutionUci": "e3e4",
+      "solutionSan": "e4",
+      "theme": "Central break when supported",
+      "structureTag": "karlsbad",
+      "difficulty": 1,
+      "themeHint": "When the center is stable, e4 opens lines.",
+      "relatedPresetId": "mg-karlsbad-qgd",
+      "tags": ["central-break"]
+    },
+    {
+      "id": "tac-ck-001",
+      "packId": "pack-caro-c5",
+      "name": "Strike with ...c5",
+      "fen": "r1bqk2r/pp1n1ppp/2b1p3/3p4/3P4/2N1PN2/PP3PPP/R1BQ1RK1 b kq - 0 10",
+      "sideToMove": "black",
+      "solutionUci": "c6c5",
+      "solutionSan": "c5",
+      "theme": "Caro central break",
+      "structureTag": "caro-advance",
+      "difficulty": 1,
+      "themeHint": "Challenge White's center when pieces are developed.",
+      "relatedPresetId": "mg-caro-advance",
+      "tags": ["c5-break"]
+    }
+  ]
+}

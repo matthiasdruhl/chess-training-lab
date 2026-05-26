@@ -1,0 +1,104 @@
+{
+  "meta": {
+    "exportedAt": "2026-05-24T12:00:00Z",
+    "appVersion": "0.0.0",
+    "dbVersion": 1
+  },
+  "settings": {
+    "version": 1,
+    "id": "app",
+    "chesscom": {
+      "username": "your_chesscom_username",
+      "defaultMonthsToFetch": 2
+    },
+    "leakDetector": {
+      "minSwingCp": 150,
+      "blunderSwingCp": 200,
+      "scanMovetimeMs": 400,
+      "quizDepth": 18
+    },
+    "conversionReview": {
+      "minPeakCp": 200,
+      "dropToCp": 80,
+      "scanMovetimeMs": 400
+    },
+    "engine": {
+      "defaultMovetimeMs": 1000,
+      "defaultDepth": 16
+    },
+    "ui": {
+      "showEvalBar": true
+    },
+    "updatedAt": "2026-05-24T12:00:00Z"
+  },
+  "repertoire_progress": [
+    {
+      "version": 1,
+      "nodeId": "qg-qgd-exchange",
+      "color": "white",
+      "status": "learning",
+      "streak": 2,
+      "bestStreak": 3,
+      "attempts": 5,
+      "successfulCompletions": 2,
+      "lastPracticedAt": "2026-05-23T20:15:00Z",
+      "nextReviewAt": null,
+      "notes": ""
+    }
+  ],
+  "out_of_book_progress": [
+    {
+      "version": 1,
+      "deviationId": "oob-qgd-bb4",
+      "parentNodeId": "qg-qgd-exchange",
+      "status": "learning",
+      "planQuizCorrect": 2,
+      "planQuizAttempts": 3,
+      "moveCorrect": 1,
+      "moveAttempts": 2,
+      "lastPracticedAt": "2026-05-23T21:00:00Z",
+      "notes": ""
+    }
+  ],
+  "bridge_progress": [
+    {
+      "version": 1,
+      "handoffId": "bridge-qgd-exchange-karlsbad",
+      "repertoireNodeId": "qg-qgd-exchange",
+      "planQuizPassed": true,
+      "planQuizAttempts": 1,
+      "continuedToMiddlegame": true,
+      "lastPracticedAt": "2026-05-23T21:30:00Z",
+      "notes": ""
+    }
+  ],
+  "drill_stats": [
+    {
+      "version": 1,
+      "presetId": "eg-krk-basic",
+      "module": "endgame",
+      "attempts": 4,
+      "completions": 1,
+      "resetCount": 7,
+      "totalMoves": 42,
+      "lastPlayedAt": "2026-05-22T19:00:00Z",
+      "notes": ""
+    }
+  ],
+  "tactics_progress": [
+    {
+      "version": 1,
+      "puzzleId": "tac-qg-002",
+      "packId": "pack-qg-c-file",
+      "status": "mastered",
+      "attempts": 2,
+      "solves": 1,
+      "revealedSolution": false,
+      "lastAttemptAt": "2026-05-22T18:00:00Z",
+      "masteredAt": "2026-05-22T18:00:00Z"
+    }
+  ],
+  "personal_blunders": [],
+  "conversion_missed": [],
+  "analysis_cache": []
+}

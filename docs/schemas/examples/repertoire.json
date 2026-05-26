@@ -1,0 +1,98 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "name": "Core Repertoire — QG & Caro-Kann",
+    "updatedAt": "2026-05-24",
+    "targetRatingBand": [1500, 1700],
+    "description": "Intent-based lines for 1.d4 / 1...c6 systems only"
+  },
+  "roots": [
+    {
+      "id": "white-queens-gambit",
+      "color": "white",
+      "opening": "Queen's Gambit",
+      "filter": {
+        "firstMoveSan": "d4",
+        "ecoPrefix": ["D0", "D1", "D2", "D3", "D4", "D5", "D6"]
+      },
+      "tree": {
+        "id": "qg-root",
+        "name": "Queen's Gambit — Main Hub",
+        "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        "pathSan": [],
+        "pathUci": [],
+        "intent": "Control center with d4+c4; aim for structures you know (Exchange, Catalan).",
+        "priority": 1,
+        "trainer": {
+          "mode": "strict",
+          "autoReply": true,
+          "hints": { "showIntentAfterMistake": true, "showArrowOnHint": false }
+        },
+        "children": [
+          {
+            "id": "qg-qgd-exchange",
+            "name": "QGD — Exchange Structure",
+            "fen": "rnbqkb1r/pp2pppp/5n2/3p4/3P4/2N5/PP2PPPP/R1BQKB1R w KQkq - 2 6",
+            "pathSan": ["d4", "d5", "c4", "e6", "Nc3", "Nf6", "cxd5", "cxd5"],
+            "pathUci": ["d2d4", "d7d5", "c2c4", "e7e6", "b1c3", "g8f6", "c4d5", "e6d5"],
+            "intent": "Trade on d5; play Bg5/Bf4, e3, Nf3, short castle; pressure open c-file and e4 break.",
+            "plans": ["Rc1", "Bf4–e3", "e4 when supported"],
+            "tags": ["main-line", "exchange-structure"],
+            "priority": 1,
+            "branchPoint": 0,
+            "trainer": {
+              "mode": "strict",
+              "autoReply": true,
+              "hints": { "showIntentAfterMistake": true, "showArrowOnHint": false }
+            },
+            "children": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "black-caro-kann",
+      "color": "black",
+      "opening": "Caro-Kann",
+      "filter": {
+        "firstMoveSan": null,
+        "respondsToSan": "e4",
+        "ecoPrefix": ["B10", "B11", "B12", "B13", "B14", "B15"]
+      },
+      "tree": {
+        "id": "ck-root",
+        "name": "Caro-Kann — Main Hub",
+        "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        "pathSan": [],
+        "pathUci": [],
+        "intent": "Solid structure; challenge White's center with ...c5 and ...Nc6 schemes.",
+        "priority": 1,
+        "trainer": {
+          "mode": "strict",
+          "autoReply": true,
+          "hints": { "showIntentAfterMistake": true, "showArrowOnHint": false }
+        },
+        "children": [
+          {
+            "id": "ck-classical",
+            "name": "Classical Caro — ...Nc6 / ...Nd7",
+            "fen": "r1bqkb1r/pp2nppp/2n1p3/3p4/3P4/2N2N2/PP2PPPP/R1BQKB1R w KQkq - 4 7",
+            "pathSan": ["e4", "c6", "d4", "d5", "Nc3", "dxe4", "Nxe4", "Nd7"],
+            "pathUci": ["e2e4", "c7c6", "d2d4", "d7d5", "b1c3", "d5e4", "c3e4", "b8d7"],
+            "intent": "Complete development; time ...c5; rook on c8; avoid premature ...f6 weaknesses.",
+            "plans": ["...c5", "...Ngf6", "...Bf5 or ...Bd6"],
+            "tags": ["classical", "priority-1"],
+            "priority": 1,
+            "branchPoint": 0,
+            "trainer": {
+              "mode": "strict",
+              "autoReply": true,
+              "hints": { "showIntentAfterMistake": true, "showArrowOnHint": false }
+            },
+            "children": []
+          }
+        ]
+      }
+    }
+  ]
+}

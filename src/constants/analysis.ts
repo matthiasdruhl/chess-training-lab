@@ -1,0 +1,9 @@
+export const LEAK_MIN_SWING_CP = 150;
+export const BLUNDER_SWING_CP = 200;
+export const INACCURACY_SWING_CP = 50;
+export const MISTAKE_SWING_CP = 100;
+export const CONVERSION_MIN_PEAK_CP = 200;
+export const CONVERSION_DROP_TO_CP = 80;
+export const CONVERSION_SCAN_MOVETIME_MS = 400;
+export const QUIZ_MOVE_LOSS_CP = 30;
+export const ENDGAME_RESET_ON_DRAW = true;

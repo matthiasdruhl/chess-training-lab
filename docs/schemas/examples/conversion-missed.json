@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "id": "660e8400-e29b-41d4-a716-446655440001",
+  "source": {
+    "platform": "chess.com",
+    "username": "your_chesscom_username",
+    "gameId": "https://api.chess.com/pub/player/your_chesscom_username/game/2025/05/xyz789",
+    "gameUrl": "https://www.chess.com/game/live/987654321",
+    "playedAt": "2026-05-18T16:20:00Z",
+    "timeClass": "rapid",
+    "result": "draw",
+    "userColor": "white",
+    "opening": {
+      "eco": "D35",
+      "name": "Queen's Gambit Declined"
+    },
+    "filterMatched": {
+      "repertoireSide": "white-queens-gambit",
+      "firstMovesSan": ["d4", "d5", "c4"]
+    }
+  },
+  "position": {
+    "fen": "r1bq1rk1/pp3ppp/2n1p3/3p4/3P4/2PBPN2/PP2QPPP/R3R1K1 w - - 0 18",
+    "sideToMove": "white",
+    "moveNumber": 18,
+    "ply": 35,
+    "playedMove": { "san": "Qe2?", "uci": "d1e2" },
+    "pvContextSan": ["d4", "d5", "c4", "e6", "Nc3", "Nf6", "cxd5", "cxd5", "Bf4", "Be7", "e3", "O-O", "Rc1", "Nc6", "Qe2"]
+  },
+  "analysis": {
+    "peakEvalCp": 320,
+    "evalAtMomentCp": 60,
+    "dropFromPeakCp": 260,
+    "bestMove": { "san": "Nxd5", "uci": "e3d5" },
+    "plyOfPeak": 31,
+    "depth": 16,
+    "movetimeMs": 500,
+    "engine": { "name": "stockfish", "jsVersion": "17.x" }
+  },
+  "quiz": {
+    "prompt": "You were winning. Find the move that keeps your advantage.",
+    "showPlayedMoveAsWrong": true
+  },
+  "userState": {
+    "status": "new",
+    "attempts": 0,
+    "correctAttempts": 0,
+    "lastAttemptAt": null,
+    "masteredAt": null,
+    "notes": ""
+  },
+  "tags": ["queens-gambit", "conversion", "rapid-draw"]
+}

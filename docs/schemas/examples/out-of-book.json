@@ -1,0 +1,71 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "name": "Out-of-Book Deviations — QG & Caro",
+    "updatedAt": "2026-05-24"
+  },
+  "deviations": [
+    {
+      "id": "oob-qgd-bb4",
+      "parentNodeId": "qg-qgd-exchange",
+      "color": "white",
+      "name": "vs QGD — ...Bb4+ before exchange",
+      "fen": "rnbqkbnr/pp2pppp/4p3/3p4/3P4/2N5/PP2PPPP/R1BQKB1R w KQkq - 1 5",
+      "opponentMove": { "san": "Bb4+", "uci": "f8b4" },
+      "principle": "Develop calmly; do not waste time grabbing pawns. Complete development and aim for cxd5 when tactically safe.",
+      "planChoices": [
+        {
+          "id": "develop",
+          "label": "Develop with Nf3 or Bd2; keep the tension",
+          "correct": true,
+          "feedback": ""
+        },
+        {
+          "id": "grab",
+          "label": "Take on d5 immediately no matter what",
+          "correct": false,
+          "feedback": "Often premature here — Black gets activity with ...Bb4+ and ...Nf6."
+        },
+        {
+          "id": "a3",
+          "label": "Kick the bishop with a3 and chase it forever",
+          "correct": false,
+          "feedback": "Creates weaknesses and loses time unless you have a concrete follow-up."
+        }
+      ],
+      "acceptableUci": ["g1f3", "d1d2", "c1d2"],
+      "optionalContinuation": {
+        "userUci": "g1f3",
+        "opponentReplies": ["b4c3", "b1c3"]
+      },
+      "severity": "common",
+      "tags": ["queens-gambit", "development"]
+    },
+    {
+      "id": "oob-caro-2nc3",
+      "parentNodeId": "ck-classical",
+      "color": "black",
+      "name": "vs Classical — 2. Nc3 instead of 3. Nc3 line",
+      "fen": "rnbqkbnr/pp1ppppp/2p5/8/4P3/2N5/8/PPPP1PPP/RNBQKBNR b KQkq - 1 2",
+      "opponentMove": { "san": "Nc3", "uci": "b1c3" },
+      "principle": "Stick to ...d5 and ...c6 structures; develop knights before chasing pawns.",
+      "planChoices": [
+        {
+          "id": "d5",
+          "label": "Play ...d5 and aim for classical Caro structure",
+          "correct": true,
+          "feedback": ""
+        },
+        {
+          "id": "e5",
+          "label": "Play ...e5 and turn it into a French",
+          "correct": false,
+          "feedback": "Not your repertoire — you play Caro with ...c6."
+        }
+      ],
+      "acceptableUci": ["d7d5"],
+      "severity": "occasional",
+      "tags": ["caro-kann", "move-order"]
+    }
+  ]
+}

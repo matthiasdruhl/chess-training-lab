@@ -1,0 +1,131 @@
+import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import type { Square } from 'chess.js';
+import { TrainingBoard } from '../components/board/TrainingBoard';
+import { SettingsModal } from '../components/layout/SettingsModal';
+import { MODULES } from '../constants/modules';
+import { useAppContext } from '../context/AppContext';
+import { useChessSession } from '../hooks/useChessSession';
+
+export default function DashboardRoute() {
+  const { settings, isLoading, updateUsername } = useAppContext();
+  const { fen, history, loadFen, makeMove } = useChessSession();
+  const [fenInput, setFenInput] = useState('');
+  const [fenError, setFenError] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  function handleLoadFen() {
+    const trimmed = fenInput.trim();
+    if (!trimmed) {
+      setFenError('Enter a FEN string.');
+      return;
+    }
+    const ok = loadFen(trimmed);
+    if (!ok) {
+      setFenError('Invalid FEN — could not load position.');
+      return;
+    }
+    setFenError(null);
+  }
+
+  function handleMove(from: Square, to: Square, promotion?: 'q' | 'r' | 'b' | 'n') {
+    return makeMove(from, to, promotion);
+  }
+
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-white">Chess Training Lab</h1>
+          <p className="mt-1 text-sm text-slate-400">
+            Personal training hub — all eight modules in one place.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setSettingsOpen(true)}
+          className="flex items-center gap-2 rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800"
+          aria-label="Open settings"
+        >
+          <span aria-hidden="true">⚙</span>
+          Settings
+        </button>
+      </div>
+
+      {!isLoading && !settings.chesscom.username && (
+        <p className="rounded-md border border-amber-800/50 bg-amber-950/30 px-4 py-3 text-sm text-amber-200">
+          Set your Chess.com username in settings to enable game scans (Phase 7).
+        </p>
+      )}
+
+      <section className="rounded-lg border border-slate-800 bg-slate-900/50 p-4">
+        <h2 className="mb-4 text-lg font-medium text-white">Board preview</h2>
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+          <TrainingBoard fen={fen} onMove={handleMove} />
+          <div className="flex-1 space-y-4">
+            <div>
+              <label htmlFor="fen-input" className="mb-1 block text-sm text-slate-300">
+                Load FEN
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <input
+                  id="fen-input"
+                  type="text"
+                  value={fenInput}
+                  onChange={(event) => setFenInput(event.target.value)}
+                  placeholder="Paste FEN here…"
+                  className="min-w-0 flex-1 rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-slate-500 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleLoadFen}
+                  className="rounded-md bg-slate-100 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-white"
+                >
+                  Load
+                </button>
+              </div>
+              {fenError && (
+                <p className="mt-1 text-sm text-red-400">{fenError}</p>
+              )}
+            </div>
+            <div>
+              <h3 className="mb-1 text-sm font-medium text-slate-300">Move history</h3>
+              <p className="text-sm text-slate-400">
+                {history.length > 0 ? history.join(' ') : 'No moves yet — drag pieces on the board.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 className="mb-4 text-lg font-medium text-white">Training modules</h2>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {MODULES.map((mod) => (
+            <article
+              key={mod.path}
+              className="flex flex-col rounded-lg border border-slate-800 bg-slate-900/50 p-4"
+            >
+              <h3 className="font-medium text-white">{mod.title}</h3>
+              <p className="mt-1 flex-1 text-sm text-slate-400">{mod.description}</p>
+              <Link
+                to={mod.path}
+                className="mt-4 inline-block w-fit rounded-md bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-900 hover:bg-white"
+              >
+                Open
+              </Link>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <SettingsModal
+        isOpen={settingsOpen}
+        username={settings.chesscom.username}
+        isLoading={isLoading}
+        onClose={() => setSettingsOpen(false)}
+        onSave={updateUsername}
+      />
+    </div>
+  );
+}
