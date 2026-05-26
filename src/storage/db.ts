@@ -5,6 +5,7 @@ import type { DrillStats } from '../types/preset';
 import type { BridgeProgress } from '../types/bridge';
 import type { OutOfBookProgress } from '../types/outOfBook';
 import type { RepertoireProgress } from '../types/repertoire';
+import type { PersonalBlunder, ConversionMissed, AnalysisCacheEntry } from '../types/review';
 import type { TacticsProgress } from '../types/tactics';
 
 export type AppDB = IDBPDatabase<{
@@ -23,8 +24,7 @@ export type AppDB = IDBPDatabase<{
   };
   personal_blunders: {
     key: string;
-    // Typed via docs only; keep runtime flexible until a dedicated type is introduced.
-    value: unknown;
+    value: PersonalBlunder;
     indexes: {
       'userState.status': string;
       'source.playedAt': string;
@@ -68,7 +68,7 @@ export type AppDB = IDBPDatabase<{
   };
   conversion_missed: {
     key: string;
-    value: unknown;
+    value: ConversionMissed;
     indexes: {
       'userState.status': string;
       'source.playedAt': string;
@@ -78,7 +78,7 @@ export type AppDB = IDBPDatabase<{
   };
   analysis_cache: {
     key: string;
-    value: unknown;
+    value: AnalysisCacheEntry;
     indexes: {
       createdAt: string;
     };

@@ -16,4 +16,13 @@ export default defineConfig({
       },
     },
   },
+  preview: {
+    proxy: {
+      '/api/chesscom': {
+        target: 'https://api.chess.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/chesscom/, '/pub'),
+      },
+    },
+  },
 });
