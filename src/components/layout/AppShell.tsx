@@ -1,5 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useState } from 'react';
+import { EngineStatusBadge } from '../engine/EngineStatusBadge';
+import { useEngineStatus } from '../../hooks/useStockfish';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', end: true },
@@ -24,6 +26,7 @@ function navLinkClass({ isActive }: { isActive: boolean }) {
 
 export function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { engineStatus } = useEngineStatus();
 
   return (
     <div className="flex min-h-screen bg-slate-950 text-slate-100">
@@ -61,15 +64,19 @@ export function AppShell() {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 items-center border-b border-slate-800 bg-slate-900 px-4 md:hidden">
-          <button
-            type="button"
-            className="rounded-md px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-800"
-            onClick={() => setMobileOpen(true)}
-          >
-            Menu
-          </button>
-          <span className="ml-3 text-sm font-semibold">Chess Training Lab</span>
+        <header className="flex h-14 items-center justify-between border-b border-slate-800 bg-slate-900 px-4">
+          <div className="flex items-center md:hidden">
+            <button
+              type="button"
+              className="rounded-md px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-800"
+              onClick={() => setMobileOpen(true)}
+            >
+              Menu
+            </button>
+            <span className="ml-3 text-sm font-semibold">Chess Training Lab</span>
+          </div>
+          <div className="hidden flex-1 md:block" />
+          <EngineStatusBadge status={engineStatus} />
         </header>
 
         <main className="flex-1 overflow-auto p-4 md:p-6">

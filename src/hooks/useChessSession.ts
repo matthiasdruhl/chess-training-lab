@@ -52,6 +52,23 @@ export function useChessSession(initialFen: string = START_FEN) {
     return moves.length > 0 ? moves[moves.length - 1] : null;
   }, [game]);
 
+  const applyUciMove = useCallback(
+    (uci: string): boolean => {
+      if (uci.length < 4) {
+        return false;
+      }
+      const from = uci.slice(0, 2) as Square;
+      const to = uci.slice(2, 4) as Square;
+      const promoChar = uci[4];
+      const promotion =
+        promoChar === 'q' || promoChar === 'r' || promoChar === 'b' || promoChar === 'n'
+          ? promoChar
+          : undefined;
+      return makeMove(from, to, promotion);
+    },
+    [makeMove],
+  );
+
   return {
     fen,
     turn,
@@ -60,6 +77,7 @@ export function useChessSession(initialFen: string = START_FEN) {
     legalMoves,
     loadFen,
     makeMove,
+    applyUciMove,
     reset,
     getLastMove,
   };
