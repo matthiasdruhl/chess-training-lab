@@ -6,6 +6,7 @@ export type SettingsPatch = {
   conversionReview?: Partial<AppSettings['conversionReview']>;
   engine?: Partial<AppSettings['engine']>;
   ui?: Partial<AppSettings['ui']>;
+  todaySession?: AppSettings['todaySession'];
   version?: AppSettings['version'];
   id?: AppSettings['id'];
   updatedAt?: string;
@@ -29,6 +30,7 @@ export function mergeSettings(
       : base.conversionReview,
     engine: patch.engine ? { ...base.engine, ...patch.engine } : base.engine,
     ui: patch.ui ? { ...base.ui, ...patch.ui } : base.ui,
+    todaySession: patch.todaySession ?? base.todaySession,
   };
 }
 
@@ -55,5 +57,6 @@ export function mergeSettingsPatches(
       ? { ...base.engine, ...patch.engine }
       : base.engine,
     ui: patch.ui ? { ...base.ui, ...patch.ui } : base.ui,
+    todaySession: patch.todaySession ?? base.todaySession,
   };
 }

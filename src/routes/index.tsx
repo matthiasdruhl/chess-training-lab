@@ -1,19 +1,44 @@
 import { Link } from 'react-router-dom';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { Square } from 'chess.js';
 import { EvalBar } from '../components/board/EvalBar';
 import { TrainingBoard } from '../components/board/TrainingBoard';
+import { BackupPanel } from '../components/dashboard/BackupPanel';
+import { DashboardStatsPanel } from '../components/dashboard/DashboardStatsPanel';
+import { TodaySessionPanel } from '../components/dashboard/TodaySessionPanel';
+import { ToastBanner } from '../components/dashboard/ToastBanner';
 import { SettingsModal } from '../components/layout/SettingsModal';
+import { ScanPanel } from '../components/review/ScanPanel';
 import { MODULES } from '../constants/modules';
 import { useAppContext } from '../context/AppContext';
 import { useChessSession } from '../hooks/useChessSession';
+import { useDashboardStats } from '../hooks/useDashboardStats';
 import { useStockfish } from '../hooks/useStockfish';
-import { loadRepertoire } from '../services/repertoire/loadRepertoire';
-import { flattenTrainableNodes } from '../services/repertoire/treeUtils';
-import { getProgress, isProgressDue } from '../storage/progressRepo';
-import { ScanPanel } from '../components/review/ScanPanel';
-import { listOpenBlunders } from '../storage/blundersRepo';
-import { listOpenConversions } from '../storage/conversionRepo';
+import { useTodaySession } from '../hooks/useTodaySession';
+import type { DashboardStats } from '../storage/dashboardStats';
+
+function moduleDueLabel(path: string, stats: DashboardStats | null, loading: boolean): string | null {
+  if (loading || !stats) {
+    return null;
+  }
+
+  switch (path) {
+    case '/repertoire':
+      return `${stats.repertoireDue} due`;
+    case '/out-of-book':
+      return `${stats.outOfBook.open} open`;
+    case '/bridge':
+      return `${stats.bridge.open} open`;
+    case '/tactics':
+      return `${stats.tactics.open} due`;
+    case '/leaks':
+      return `${stats.blunders.open} open`;
+    case '/conversion':
+      return `${stats.conversions.open} open`;
+    default:
+      return null;
+  }
+}
 
 export default function DashboardRoute() {
   const { settings, isLoading, updateSettings } = useAppContext();
@@ -31,55 +56,30 @@ export default function DashboardRoute() {
   const [fenError, setFenError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [linesDueCount, setLinesDueCount] = useState<number | null>(null);
-  const [blunderCount, setBlunderCount] = useState<number | null>(null);
-  const [conversionCount, setConversionCount] = useState<number | null>(null);
+  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(
+    null,
+  );
 
-  const trainableNodes = useMemo(() => {
-    const repertoire = loadRepertoire();
-    return repertoire.roots.flatMap((root) => flattenTrainableNodes(root));
-  }, []);
+  const { stats, isLoading: statsLoading, refresh: refreshStats } = useDashboardStats();
 
-  useEffect(() => {
-    let cancelled = false;
+  const persistTodaySession = useCallback(
+    async (todaySession: NonNullable<typeof settings.todaySession>) => {
+      await updateSettings({ todaySession });
+    },
+    [updateSettings],
+  );
 
-    async function loadDueCount() {
-      try {
-        const dueFlags = await Promise.allSettled(
-          trainableNodes.map(async ({ node }) => {
-            const progress = await getProgress(node.id);
-            return isProgressDue(progress);
-          }),
-        );
-
-        if (cancelled) {
-          return;
-        }
-
-        const dueCount = dueFlags.reduce((acc, result) => {
-          if (result.status !== 'fulfilled') {
-            return acc;
-          }
-          return result.value ? acc + 1 : acc;
-        }, 0);
-
-        setLinesDueCount(dueCount);
-      } catch (err) {
-        // Dashboard due-count should never block the whole page.
-        console.warn('Failed to aggregate due-count:', err);
-        if (!cancelled) {
-          setLinesDueCount(0);
-        }
-      }
-    }
-
-    void loadDueCount();
-    void listOpenBlunders().then((items) => setBlunderCount(items.length));
-    void listOpenConversions().then((items) => setConversionCount(items.length));
-    return () => {
-      cancelled = true;
-    };
-  }, [trainableNodes]);
+  const {
+    steps,
+    completedCount,
+    totalCount,
+    isResolvingTargets,
+    toggleStep,
+    resetForToday,
+  } = useTodaySession({
+    settings,
+    onPersist: persistTodaySession,
+  });
 
   const showEvalBar = lastEval !== null || isThinking;
 
@@ -146,43 +146,39 @@ export default function DashboardRoute() {
         </button>
       </div>
 
+      <ToastBanner
+        message={toast?.message ?? null}
+        variant={toast?.variant}
+        onDismiss={() => setToast(null)}
+      />
+
       {!isLoading && !settings.chesscom.username && (
         <p className="rounded-md border border-amber-800/50 bg-amber-950/30 px-4 py-3 text-sm text-amber-200">
           Set your Chess.com username in settings to enable game scans (Phase 7).
         </p>
       )}
 
-      <section className="rounded-lg border border-slate-800 bg-slate-900/50 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-medium text-white">Lines due for review</h2>
-            <p className="mt-1 text-sm text-slate-400">
-              Repertoire lines not practiced recently or still in learning.
-            </p>
-          </div>
-          <Link
-            to="/repertoire"
-            className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600"
-          >
-            Open repertoire
-          </Link>
-        </div>
-        <p className="mt-4 text-3xl font-semibold text-white">
-          {linesDueCount === null ? '…' : linesDueCount}
-        </p>
-        <p className="mt-1 text-sm text-slate-500">
-          {linesDueCount === 1 ? 'line due' : 'lines due'}
-        </p>
-      </section>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        <TodaySessionPanel
+          steps={steps}
+          completedCount={completedCount}
+          totalCount={totalCount}
+          isResolvingTargets={isResolvingTargets}
+          onToggleStep={toggleStep}
+          onResetForToday={resetForToday}
+        />
+        <DashboardStatsPanel stats={stats} isLoading={statsLoading} />
+      </div>
 
       <section className="rounded-lg border border-slate-800 bg-slate-900/50 p-4">
         <h2 className="mb-4 text-lg font-medium text-white">Chess.com review</h2>
-        <div className="mb-4 flex flex-wrap gap-6 text-sm text-slate-300">
-          <span>Open blunders: {blunderCount ?? '…'}</span>
-          <span>Open conversions: {conversionCount ?? '…'}</span>
-        </div>
         <ScanPanel />
       </section>
+
+      <BackupPanel
+        onToast={(message, variant) => setToast({ message, variant: variant ?? 'success' })}
+        onImportComplete={() => void refreshStats()}
+      />
 
       <section className="rounded-lg border border-slate-800 bg-slate-900/50 p-4">
         <h2 className="mb-4 text-lg font-medium text-white">Board preview</h2>
@@ -284,12 +280,18 @@ export default function DashboardRoute() {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {MODULES.map((mod) => {
             const isComingSoon = mod.description.toLowerCase().includes('coming in phase');
+            const dueLabel = moduleDueLabel(mod.path, stats, statsLoading);
             return (
             <article
               key={mod.path}
               className="flex flex-col rounded-lg border border-slate-800 bg-slate-900/50 p-4"
             >
               <h3 className="font-medium text-white">{mod.title}</h3>
+              {dueLabel && (
+                <p className="mt-1 text-xs font-medium uppercase tracking-wide text-emerald-400">
+                  {dueLabel}
+                </p>
+              )}
               <p className="mt-1 flex-1 text-sm text-slate-400">{mod.description}</p>
               <Link
                 to={mod.path}

@@ -44,3 +44,9 @@ export async function putBridgeProgress(record: BridgeProgress): Promise<void> {
   await db.put('bridge_progress', record);
 }
 
+export async function listAllBridgeProgress(): Promise<BridgeProgress[]> {
+  const db = await openAppDB();
+  const rows = await db.getAll('bridge_progress');
+  return rows.filter(isValidBridgeProgress);
+}
+

@@ -48,6 +48,12 @@ export async function putOutOfBookProgress(record: OutOfBookProgress): Promise<v
   await db.put('out_of_book_progress', record);
 }
 
+export async function listAllOutOfBookProgress(): Promise<OutOfBookProgress[]> {
+  const db = await openAppDB();
+  const rows = await db.getAll('out_of_book_progress');
+  return rows.filter(isValidOutOfBookProgress);
+}
+
 export function nextOutOfBookStatusAfterSuccess(status: ProgressStatus): ProgressStatus {
   if (status === 'known') {
     return 'known';

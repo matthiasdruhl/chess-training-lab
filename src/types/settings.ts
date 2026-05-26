@@ -1,3 +1,5 @@
+import type { TodaySessionState } from './todaySession';
+
 export interface AppSettings {
   version: 1;
   id: 'app';
@@ -25,5 +27,6 @@ export interface AppSettings {
     boardTheme?: string;
     showEvalBar: boolean;
   };
+  todaySession?: TodaySessionState;
   updatedAt: string;
 }

@@ -230,6 +230,10 @@ function SettingsModalBody({
             </div>
           </fieldset>
 
+          <p className="text-xs text-slate-500">
+            Export and import full training data from the Dashboard backup section.
+          </p>
+
           <div className="flex justify-end gap-2">
             <button
               type="button"

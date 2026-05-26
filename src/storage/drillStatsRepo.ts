@@ -44,3 +44,9 @@ export async function putDrillStats(stats: DrillStats): Promise<void> {
   const db = await openAppDB();
   await db.put('drill_stats', stats);
 }
+
+export async function listAllDrillStats(): Promise<DrillStats[]> {
+  const db = await openAppDB();
+  const rows = await db.getAll('drill_stats');
+  return rows.filter(isValidDrillStats);
+}
