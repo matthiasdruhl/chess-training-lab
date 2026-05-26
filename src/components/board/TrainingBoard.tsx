@@ -6,6 +6,7 @@ interface TrainingBoardProps {
   orientation?: 'white' | 'black';
   onMove?: (from: Square, to: Square, promotion?: 'q' | 'r' | 'b' | 'n') => boolean;
   boardWidth?: number;
+  allowDragging?: boolean;
 }
 
 export function TrainingBoard({
@@ -13,6 +14,7 @@ export function TrainingBoard({
   orientation = 'white',
   onMove,
   boardWidth = 400,
+  allowDragging = true,
 }: TrainingBoardProps) {
   function handlePieceDrop({
     sourceSquare,
@@ -33,6 +35,7 @@ export function TrainingBoard({
       options={{
         position: fen,
         boardOrientation: orientation,
+        allowDragging,
         onPieceDrop: handlePieceDrop,
         boardStyle: { borderRadius: '4px', width: boardWidth },
       }}

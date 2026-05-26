@@ -1,6 +1,7 @@
 import { openDB, type IDBPDatabase } from 'idb';
 import { DB_NAME, DB_VERSION } from '../constants/db';
 import type { AppSettings } from '../types/settings';
+import type { RepertoireProgress } from '../types/repertoire';
 
 export type AppDB = IDBPDatabase<{
   settings: {
@@ -9,7 +10,7 @@ export type AppDB = IDBPDatabase<{
   };
   repertoire_progress: {
     key: string;
-    value: unknown;
+    value: RepertoireProgress;
     indexes: {
       color: string;
       lastPracticedAt: string | null;

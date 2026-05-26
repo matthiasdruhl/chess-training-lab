@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Square } from 'chess.js';
 import { EvalBar } from '../components/board/EvalBar';
 import { TrainingBoard } from '../components/board/TrainingBoard';
@@ -8,6 +8,9 @@ import { MODULES } from '../constants/modules';
 import { useAppContext } from '../context/AppContext';
 import { useChessSession } from '../hooks/useChessSession';
 import { useStockfish } from '../hooks/useStockfish';
+import { loadRepertoire } from '../services/repertoire/loadRepertoire';
+import { flattenTrainableNodes } from '../services/repertoire/treeUtils';
+import { getProgress, isProgressDue } from '../storage/progressRepo';
 
 export default function DashboardRoute() {
   const { settings, isLoading, updateUsername } = useAppContext();
@@ -25,6 +28,33 @@ export default function DashboardRoute() {
   const [fenError, setFenError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [linesDueCount, setLinesDueCount] = useState<number | null>(null);
+
+  const trainableNodes = useMemo(() => {
+    const repertoire = loadRepertoire();
+    return repertoire.roots.flatMap((root) => flattenTrainableNodes(root));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadDueCount() {
+      const dueFlags = await Promise.all(
+        trainableNodes.map(async ({ node }) => {
+          const progress = await getProgress(node.id);
+          return isProgressDue(progress);
+        }),
+      );
+      if (!cancelled) {
+        setLinesDueCount(dueFlags.filter(Boolean).length);
+      }
+    }
+
+    void loadDueCount();
+    return () => {
+      cancelled = true;
+    };
+  }, [trainableNodes]);
 
   const showEvalBar = lastEval !== null || isThinking;
 
@@ -96,6 +126,29 @@ export default function DashboardRoute() {
           Set your Chess.com username in settings to enable game scans (Phase 7).
         </p>
       )}
+
+      <section className="rounded-lg border border-slate-800 bg-slate-900/50 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-medium text-white">Lines due for review</h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Repertoire lines not practiced recently or still in learning.
+            </p>
+          </div>
+          <Link
+            to="/repertoire"
+            className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600"
+          >
+            Open repertoire
+          </Link>
+        </div>
+        <p className="mt-4 text-3xl font-semibold text-white">
+          {linesDueCount === null ? '…' : linesDueCount}
+        </p>
+        <p className="mt-1 text-sm text-slate-500">
+          {linesDueCount === 1 ? 'line due' : 'lines due'}
+        </p>
+      </section>
 
       <section className="rounded-lg border border-slate-800 bg-slate-900/50 p-4">
         <h2 className="mb-4 text-lg font-medium text-white">Board preview</h2>
