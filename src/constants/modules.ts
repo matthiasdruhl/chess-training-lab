@@ -21,17 +21,17 @@ const MODULES = [
   },
   {
     title: 'Structure Tactics',
-    description: 'Pattern recognition in your opening structures.',
+    description: 'Pattern recognition in your opening structures (preview route; full module in Phase 6).',
     path: '/tactics',
   },
   {
     title: 'Leak Detector',
-    description: 'Turn Chess.com mistakes into repeatable puzzles.',
+    description: 'Turn Chess.com mistakes into repeatable puzzles (coming in Phase 7).',
     path: '/leaks',
   },
   {
     title: 'Conversion Review',
-    description: 'Fix winning positions you failed to convert.',
+    description: 'Fix winning positions you failed to convert (coming in Phase 7).',
     path: '/conversion',
   },
   {

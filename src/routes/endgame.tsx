@@ -9,9 +9,7 @@ import { PresetPicker } from '../components/middlegame/PresetPicker';
 import { useAppContext } from '../context/AppContext';
 import { usePresetSession } from '../hooks/usePresetSession';
 
-export default function EndgameRoute() {
-  const [params] = useSearchParams();
-  const presetFromQuery = params.get('preset');
+function EndgameSession({ presetFromQuery }: { presetFromQuery: string | null }) {
   const { settings } = useAppContext();
 
   const {
@@ -95,4 +93,10 @@ export default function EndgameRoute() {
       </div>
     </div>
   );
+}
+
+export default function EndgameRoute() {
+  const [params] = useSearchParams();
+  const presetFromQuery = params.get('preset');
+  return <EndgameSession key={presetFromQuery ?? 'none'} presetFromQuery={presetFromQuery} />;
 }

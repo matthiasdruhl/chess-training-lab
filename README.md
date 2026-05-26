@@ -34,11 +34,11 @@ Example data files live in [docs/schemas/examples/](docs/schemas/examples/).
 | 2 | **Out-of-Book Defender** | Practice principled responses when opponents leave your prep |
 | 3 | **Opening → Middlegame Bridge** | Connect end-of-opening positions to concrete middlegame plans |
 | 4 | **Middlegame Simulator** | Play from characteristic pawn structures vs Stockfish |
-| 5 | **Structure Tactics** | Curated tactics from your structures (not generic puzzle rush) |
-| 6 | **Leak Detector & Quiz** | Chess.com mistakes → personal blunder puzzles |
-| 7 | **Conversion Review** | Chess.com games where you were winning but failed to convert |
+| 5 | **Structure Tactics** | Pattern recognition in your opening structures (preview route; full module in Phase 6). |
+| 6 | **Leak Detector** | Turn Chess.com mistakes into repeatable puzzles (coming in Phase 7). |
+| 7 | **Conversion Review** | Fix winning positions you failed to convert (coming in Phase 7). |
 | 8 | **Endgame Drill-Master** | Strict, reset-heavy endgame technique vs Stockfish |
 
 ## Status
 
-**Phase 1 complete** — run `npm install && npm run dev`, then open http://localhost:5173. See [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for Phase 2 (Stockfish engine).
+**Phase 5 complete** — run `npm install && npm run dev`, then open http://localhost:5173. Module 5 currently exposes a preview route while full Structure Tactics content is scheduled in Phase 6; see [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for upcoming scope.

@@ -39,14 +39,32 @@ export default function DashboardRoute() {
     let cancelled = false;
 
     async function loadDueCount() {
-      const dueFlags = await Promise.all(
-        trainableNodes.map(async ({ node }) => {
-          const progress = await getProgress(node.id);
-          return isProgressDue(progress);
-        }),
-      );
-      if (!cancelled) {
-        setLinesDueCount(dueFlags.filter(Boolean).length);
+      try {
+        const dueFlags = await Promise.allSettled(
+          trainableNodes.map(async ({ node }) => {
+            const progress = await getProgress(node.id);
+            return isProgressDue(progress);
+          }),
+        );
+
+        if (cancelled) {
+          return;
+        }
+
+        const dueCount = dueFlags.reduce((acc, result) => {
+          if (result.status !== 'fulfilled') {
+            return acc;
+          }
+          return result.value ? acc + 1 : acc;
+        }, 0);
+
+        setLinesDueCount(dueCount);
+      } catch (err) {
+        // Dashboard due-count should never block the whole page.
+        console.warn('Failed to aggregate due-count:', err);
+        if (!cancelled) {
+          setLinesDueCount(0);
+        }
       }
     }
 
@@ -248,7 +266,9 @@ export default function DashboardRoute() {
       <section>
         <h2 className="mb-4 text-lg font-medium text-white">Training modules</h2>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {MODULES.map((mod) => (
+          {MODULES.map((mod) => {
+            const isComingSoon = mod.description.toLowerCase().includes('coming in phase');
+            return (
             <article
               key={mod.path}
               className="flex flex-col rounded-lg border border-slate-800 bg-slate-900/50 p-4"
@@ -259,10 +279,11 @@ export default function DashboardRoute() {
                 to={mod.path}
                 className="mt-4 inline-block w-fit rounded-md bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-900 hover:bg-white"
               >
-                Open
+                {isComingSoon ? 'Open preview' : 'Open'}
               </Link>
             </article>
-          ))}
+            );
+          })}
         </div>
       </section>
 

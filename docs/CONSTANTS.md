@@ -182,7 +182,7 @@ const DEFAULT_SETTINGS = {
 
 ---
 
-## Implementation file layout (planned)
+## Implementation file layout (planned baseline)
 
 ```
 src/constants/
@@ -192,6 +192,7 @@ src/constants/
   chesscom.ts
   training.ts      # repertoire due days, session sizes
   defaults.ts      # DEFAULT_SETTINGS factory
+  modules.ts       # dashboard module metadata (including preview labels)
 ```
 
 ---

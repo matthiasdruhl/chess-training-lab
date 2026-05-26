@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
   useCallback,
@@ -159,8 +160,11 @@ export function EngineProvider({ children }: { children: ReactNode }) {
   }, [attachQueue, clearEvalSchedule]);
 
   useEffect(() => {
-    initWorker();
+    const initTimer = setTimeout(() => {
+      initWorker();
+    }, 0);
     return () => {
+      clearTimeout(initTimer);
       clearEvalSchedule();
       queueRef.current?.destroy();
       workerRef.current?.terminate();

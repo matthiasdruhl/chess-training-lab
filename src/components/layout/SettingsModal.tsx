@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -15,18 +15,30 @@ export function SettingsModal({
   onClose,
   onSave,
 }: SettingsModalProps) {
-  const [draft, setDraft] = useState(username);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      setDraft(username);
-    }
-  }, [isOpen, username]);
-
   if (!isOpen) {
     return null;
   }
+
+  // Remount when username changes to keep the draft in sync without effect-driven setState.
+  return (
+    <SettingsModalBody
+      key={username}
+      username={username}
+      isLoading={isLoading}
+      onClose={onClose}
+      onSave={onSave}
+    />
+  );
+}
+
+function SettingsModalBody({
+  username,
+  isLoading,
+  onClose,
+  onSave,
+}: Omit<SettingsModalProps, 'isOpen'>) {
+  const [draft, setDraft] = useState(username);
+  const [saving, setSaving] = useState(false);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();

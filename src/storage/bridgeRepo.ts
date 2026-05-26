@@ -1,6 +1,14 @@
 import type { BridgeProgress } from '../types/bridge';
 import { openAppDB } from './db';
 
+function isValidBridgeProgress(value: unknown): value is BridgeProgress {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const candidate = value as Partial<BridgeProgress>;
+  return candidate.version === 1 && typeof candidate.handoffId === 'string';
+}
+
 export function createDefaultBridgeProgress(
   handoffId: string,
   repertoireNodeId: string,
@@ -19,7 +27,16 @@ export function createDefaultBridgeProgress(
 
 export async function getBridgeProgress(handoffId: string): Promise<BridgeProgress | undefined> {
   const db = await openAppDB();
-  return (await db.get('bridge_progress', handoffId)) as BridgeProgress | undefined;
+  const existing = await db.get('bridge_progress', handoffId);
+  if (!existing) {
+    return undefined;
+  }
+
+  if (!isValidBridgeProgress(existing)) {
+    return undefined;
+  }
+
+  return existing;
 }
 
 export async function putBridgeProgress(record: BridgeProgress): Promise<void> {

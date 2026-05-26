@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Square } from 'chess.js';
 import { DEBOUNCE_WRITE_MS } from '../constants/persistence';
-import { listDeviations } from '../services/out-of-book/loadDeviations';
+import { getDeviationValidationError, listDeviations } from '../services/out-of-book/loadDeviations';
 import type { OutOfBookDeviation, OutOfBookOptionalContinuation, OutOfBookProgress } from '../types/outOfBook';
 import {
   createDefaultOutOfBookProgress,
@@ -39,7 +39,17 @@ function triggersContinuation(deviation: OutOfBookDeviation, uci: string): boole
 }
 
 export function useOutOfBookDrill(deviationIdFromQuery: string | null, parentNodeIdFromQuery: string | null) {
-  const allDeviations = useMemo(() => listDeviations(), []);
+  const { allDeviations, dataError } = useMemo(() => {
+    try {
+      return {
+        allDeviations: listDeviations(),
+        dataError: getDeviationValidationError(),
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load out-of-book deviations.';
+      return { allDeviations: [] as OutOfBookDeviation[], dataError: message };
+    }
+  }, []);
 
   const filteredDeviations = useMemo(() => {
     if (!parentNodeIdFromQuery) {
@@ -76,6 +86,27 @@ export function useOutOfBookDrill(deviationIdFromQuery: string | null, parentNod
   const pendingWriteRef = useRef<OutOfBookProgress | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoPlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const selectionRequestIdRef = useRef(0);
+  const clearSelectionStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const selectDeviationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearSelectionState = useCallback(() => {
+    selectionRequestIdRef.current += 1;
+    setSelectedDeviationId(null);
+    setStep('plan');
+    setFeedback(null);
+    setSelectedPlanId(null);
+    setIsAutoPlaying(false);
+    setProgress(null);
+  }, []);
+  const scheduleClearSelectionState = useCallback(() => {
+    if (clearSelectionStateTimerRef.current) {
+      clearTimeout(clearSelectionStateTimerRef.current);
+    }
+    clearSelectionStateTimerRef.current = setTimeout(() => {
+      clearSelectionStateTimerRef.current = null;
+      clearSelectionState();
+    }, 0);
+  }, [clearSelectionState]);
 
   const flushWrites = useCallback(() => {
     if (debounceRef.current) {
@@ -117,6 +148,9 @@ export function useOutOfBookDrill(deviationIdFromQuery: string | null, parentNod
   const selectDeviation = useCallback(
     async (deviationId: string) => {
       flushWrites();
+      const requestId = selectionRequestIdRef.current + 1;
+      selectionRequestIdRef.current = requestId;
+
       if (autoPlayTimerRef.current) {
         clearTimeout(autoPlayTimerRef.current);
         autoPlayTimerRef.current = null;
@@ -124,6 +158,7 @@ export function useOutOfBookDrill(deviationIdFromQuery: string | null, parentNod
 
       const deviation = filteredDeviations.find((d) => d.id === deviationId);
       if (!deviation) {
+        clearSelectionState();
         return;
       }
 
@@ -135,25 +170,55 @@ export function useOutOfBookDrill(deviationIdFromQuery: string | null, parentNod
       loadFen(deviation.fen);
 
       const existing = await getOutOfBookProgress(deviationId);
+      if (selectionRequestIdRef.current !== requestId) {
+        return;
+      }
       setProgress(existing ?? createDefaultOutOfBookProgress(deviationId, deviation.parentNodeId));
     },
-    [filteredDeviations, flushWrites, loadFen],
+    [clearSelectionState, filteredDeviations, flushWrites, loadFen],
+  );
+  const scheduleSelectDeviation = useCallback(
+    (deviationId: string) => {
+      if (selectDeviationTimerRef.current) {
+        clearTimeout(selectDeviationTimerRef.current);
+      }
+      selectDeviationTimerRef.current = setTimeout(() => {
+        selectDeviationTimerRef.current = null;
+        void selectDeviation(deviationId);
+      }, 0);
+    },
+    [selectDeviation],
   );
 
   useEffect(() => {
     const targetId = resolveDeviationId();
-    if (targetId && targetId !== selectedDeviationId) {
-      setSelectedDeviationId(targetId);
-    }
-  }, [resolveDeviationId, selectedDeviationId]);
-
-  useEffect(() => {
-    if (!selectedDeviationId) {
+    if (!targetId) {
+      flushWrites();
+      if (autoPlayTimerRef.current) {
+        clearTimeout(autoPlayTimerRef.current);
+        autoPlayTimerRef.current = null;
+      }
+      if (selectedDeviationId !== null || progress !== null || isAutoPlaying || selectedPlanId !== null || feedback !== null) {
+        scheduleClearSelectionState();
+      }
       return;
     }
-    void selectDeviation(selectedDeviationId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDeviationId]);
+
+    if (targetId !== selectedDeviationId) {
+      scheduleSelectDeviation(targetId);
+    }
+  }, [
+    clearSelectionState,
+    feedback,
+    flushWrites,
+    isAutoPlaying,
+    progress,
+    resolveDeviationId,
+    scheduleClearSelectionState,
+    scheduleSelectDeviation,
+    selectedDeviationId,
+    selectedPlanId,
+  ]);
 
   const choosePlan = useCallback(
     (planId: string) => {
@@ -342,6 +407,12 @@ export function useOutOfBookDrill(deviationIdFromQuery: string | null, parentNod
       if (autoPlayTimerRef.current) {
         clearTimeout(autoPlayTimerRef.current);
       }
+      if (clearSelectionStateTimerRef.current) {
+        clearTimeout(clearSelectionStateTimerRef.current);
+      }
+      if (selectDeviationTimerRef.current) {
+        clearTimeout(selectDeviationTimerRef.current);
+      }
     };
   }, [flushWrites]);
 
@@ -361,5 +432,6 @@ export function useOutOfBookDrill(deviationIdFromQuery: string | null, parentNod
     isBoardLocked: (step !== 'move' && step !== 'continuation') || isAutoPlaying,
     isAutoPlaying,
     hasContinuation,
+    dataError,
   };
 }

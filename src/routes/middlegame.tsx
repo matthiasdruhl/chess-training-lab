@@ -9,9 +9,7 @@ import { useAppContext } from '../context/AppContext';
 import type { PresetFamilyFilter } from '../hooks/usePresetSession';
 import { usePresetSession } from '../hooks/usePresetSession';
 
-export default function MiddlegameRoute() {
-  const [params] = useSearchParams();
-  const presetFromQuery = params.get('preset');
+function MiddlegameSession({ presetFromQuery }: { presetFromQuery: string | null }) {
   const { settings } = useAppContext();
   const [familyFilter, setFamilyFilter] = useState<PresetFamilyFilter>('all');
 
@@ -101,4 +99,10 @@ export default function MiddlegameRoute() {
       </div>
     </div>
   );
+}
+
+export default function MiddlegameRoute() {
+  const [params] = useSearchParams();
+  const presetFromQuery = params.get('preset');
+  return <MiddlegameSession key={presetFromQuery ?? 'none'} presetFromQuery={presetFromQuery} />;
 }

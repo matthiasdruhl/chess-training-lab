@@ -1,6 +1,14 @@
 import type { OutOfBookProgress, ProgressStatus } from '../types/outOfBook';
 import { openAppDB } from './db';
 
+function isValidOutOfBookProgress(value: unknown): value is OutOfBookProgress {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const candidate = value as Partial<OutOfBookProgress>;
+  return candidate.version === 1 && typeof candidate.deviationId === 'string';
+}
+
 export function createDefaultOutOfBookProgress(
   deviationId: string,
   parentNodeId: string,
@@ -23,7 +31,16 @@ export async function getOutOfBookProgress(
   deviationId: string,
 ): Promise<OutOfBookProgress | undefined> {
   const db = await openAppDB();
-  return (await db.get('out_of_book_progress', deviationId)) as OutOfBookProgress | undefined;
+  const existing = await db.get('out_of_book_progress', deviationId);
+  if (!existing) {
+    return undefined;
+  }
+
+  if (!isValidOutOfBookProgress(existing)) {
+    return undefined;
+  }
+
+  return existing;
 }
 
 export async function putOutOfBookProgress(record: OutOfBookProgress): Promise<void> {

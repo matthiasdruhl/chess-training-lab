@@ -11,10 +11,7 @@ export function useChessSession(initialFen: string = START_FEN) {
   const history = game.history();
   const isGameOver = game.isGameOver();
 
-  const legalMoves = useMemo(
-    () => game.moves({ verbose: true }),
-    [fen],
-  );
+  const legalMoves = useMemo(() => game.moves({ verbose: true }), [game]);
 
   const loadFen = useCallback((nextFen: string): boolean => {
     try {

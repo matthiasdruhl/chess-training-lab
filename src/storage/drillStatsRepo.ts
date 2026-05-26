@@ -1,6 +1,14 @@
 import type { DrillStats, PresetModule } from '../types/preset';
 import { openAppDB } from './db';
 
+function isValidDrillStats(value: unknown): value is DrillStats {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const candidate = value as Partial<DrillStats>;
+  return candidate.version === 1 && typeof candidate.presetId === 'string';
+}
+
 export function createDefaultDrillStats(
   presetId: string,
   module: PresetModule,
@@ -20,7 +28,16 @@ export function createDefaultDrillStats(
 
 export async function getDrillStats(presetId: string): Promise<DrillStats | undefined> {
   const db = await openAppDB();
-  return (await db.get('drill_stats', presetId)) as DrillStats | undefined;
+  const existing = await db.get('drill_stats', presetId);
+  if (!existing) {
+    return undefined;
+  }
+
+  if (!isValidDrillStats(existing)) {
+    return undefined;
+  }
+
+  return existing;
 }
 
 export async function putDrillStats(stats: DrillStats): Promise<void> {

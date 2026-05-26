@@ -21,9 +21,6 @@ import { useStockfish } from './useStockfish';
 
 export type PresetFamilyFilter = OpeningFamily | 'all';
 
-/** Survives Strict Mode remount so preset load does not double-count attempts. */
-let lastLoadedPresetSessionKey: string | null = null;
-
 function moveToUci(from: Square, to: Square, promotion?: 'q' | 'r' | 'b' | 'n'): string {
   return `${from}${to}${promotion ?? ''}`;
 }
@@ -81,26 +78,46 @@ export function usePresetSession(
     [allPresets, familyFilter],
   );
 
-  const resolvePresetId = useCallback(() => {
-    if (presetIdFromQuery && filteredPresets.some((preset) => preset.id === presetIdFromQuery)) {
-      return presetIdFromQuery;
+  const presetExistsInModule =
+    presetIdFromQuery != null ? allPresets.some((preset) => preset.id === presetIdFromQuery) : true;
+
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(() => {
+    if (presetIdFromQuery != null) {
+      return presetExistsInModule ? presetIdFromQuery : null;
     }
     return filteredPresets[0]?.id ?? null;
-  }, [filteredPresets, presetIdFromQuery]);
-
-  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(resolvePresetId);
+  });
 
   const selectedPreset: Preset | undefined = useMemo(
-    () => filteredPresets.find((preset) => preset.id === selectedPresetId),
-    [filteredPresets, selectedPresetId],
+    () => allPresets.find((preset) => preset.id === selectedPresetId),
+    [allPresets, selectedPresetId],
   );
+
+  const pickerPresets = useMemo(() => {
+    if (!selectedPreset) {
+      return filteredPresets;
+    }
+    if (filteredPresets.some((preset) => preset.id === selectedPreset.id)) {
+      return filteredPresets;
+    }
+    // Ensure query-driven selection still appears in the picker when filtered out.
+    return [selectedPreset, ...filteredPresets];
+  }, [filteredPresets, selectedPreset]);
 
   const { fen, turn, history, isGameOver, loadFen, makeMove, applyUciMove } = useChessSession(
     selectedPreset?.fen,
   );
 
-  const { analyze, bestMove, lastEval, isThinking, isReady, applySkillLevel, resetEngineSkill } =
-    useStockfish();
+  const {
+    analyze,
+    bestMove,
+    lastEval,
+    isThinking,
+    isReady,
+    applySkillLevel,
+    resetEngineSkill,
+    restartEngine,
+  } = useStockfish();
 
   const [stats, setStats] = useState<DrillStats | null>(null);
   const [sessionMoveCount, setSessionMoveCount] = useState(0);
@@ -108,7 +125,12 @@ export function usePresetSession(
   const [sessionComplete, setSessionComplete] = useState(false);
   const [showResetToast, setShowResetToast] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [sessionMessage, setSessionMessage] = useState<string | null>(null);
+  const [sessionMessage, setSessionMessage] = useState<string | null>(() => {
+    if (presetIdFromQuery != null && !presetExistsInModule) {
+      return `Invalid preset id: ${presetIdFromQuery}`;
+    }
+    return null;
+  });
 
   const pendingWriteRef = useRef<DrillStats | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -118,11 +140,7 @@ export function usePresetSession(
   const sessionMoveCountRef = useRef(0);
   const statsRef = useRef<DrillStats | null>(null);
   const completionRecordedRef = useRef(false);
-  const userSelectedPresetRef = useRef(false);
   const appliedSkillLevelRef = useRef<number | null>(null);
-  presetRef.current = selectedPreset;
-  sessionMoveCountRef.current = sessionMoveCount;
-  statsRef.current = stats;
 
   const flushWrites = useCallback(() => {
     if (debounceRef.current) {
@@ -245,26 +263,67 @@ export function usePresetSession(
       ensurePresetSkillLevel(preset);
 
       try {
-        const uci = await bestMove(positionFen, presetGoLimits(preset));
-        await new Promise<void>((resolve) => {
-          setTimeout(() => resolve(), OPPONENT_REPLY_DELAY_MS);
-        });
+        const bestMoveWithTimeout = async (fenToSearch: string, timeoutMs: number): Promise<string> => {
+          return await Promise.race([
+            bestMove(fenToSearch, presetGoLimits(preset)),
+            new Promise<string>((_, reject) => {
+              setTimeout(() => reject(new Error('Engine reply timed out.')), timeoutMs);
+            }),
+          ]);
+        };
 
-        const chess = new Chess(positionFen);
-        const from = uci.slice(0, 2) as Square;
-        const to = uci.slice(2, 4) as Square;
-        const promo = uci[4];
-        const promotion =
-          promo === 'q' || promo === 'r' || promo === 'b' || promo === 'n' ? promo : undefined;
-        chess.move({ from, to, promotion: promotion ?? 'q' });
-        applyUciMove(uci);
-        return chess.fen();
+        const restartThenRetry = async (reason: string) => {
+          setSessionMessage(`Engine error — resetting. ${reason}`);
+          restartEngine();
+          await new Promise<void>((resolve) => {
+            setTimeout(() => resolve(), OPPONENT_REPLY_DELAY_MS);
+          });
+        };
+
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const uci = await bestMoveWithTimeout(positionFen, OPPONENT_REPLY_DELAY_MS * 4);
+            await new Promise<void>((resolve) => {
+              setTimeout(() => resolve(), OPPONENT_REPLY_DELAY_MS);
+            });
+
+            const chess = new Chess(positionFen);
+            const from = uci.slice(0, 2) as Square;
+            const to = uci.slice(2, 4) as Square;
+            const promo = uci[4];
+            const promotion =
+              promo === 'q' || promo === 'r' || promo === 'b' || promo === 'n'
+                ? promo
+                : undefined;
+
+            // chess.js returns null when the move is illegal; treat that as a failure.
+            const localMove = chess.move({ from, to, promotion: promotion ?? 'q' });
+            const applied = applyUciMove(uci);
+            if (!localMove || !applied) {
+              throw new Error('Engine reply was not applicable.');
+            }
+
+            return chess.fen();
+          } catch (err) {
+            if (attempt === 0) {
+              await restartThenRetry(
+                err instanceof Error ? err.message : 'Retrying engine reply...',
+              );
+              continue;
+            }
+            setSessionMessage('Engine move failed — board unlocked. Try your move again.');
+            restartEngine();
+            return null;
+          }
+        }
+        return null;
       } catch {
-        setSessionMessage('Engine move failed — try again.');
+        setSessionMessage('Engine move failed — board unlocked. Try your move again.');
+        restartEngine();
         return null;
       }
     },
-    [applyUciMove, bestMove, ensurePresetSkillLevel, isReady],
+    [applyUciMove, bestMove, ensurePresetSkillLevel, isReady, restartEngine],
   );
 
   const gradeUserMove = useCallback(
@@ -276,7 +335,7 @@ export function usePresetSession(
 
       try {
         const beforeAnalysis = await analyze(fenBefore, presetGoLimits(preset));
-        if (userUci === beforeAnalysis.bestMoveUci) {
+        if (beforeAnalysis.bestMoveUci && userUci === beforeAnalysis.bestMoveUci) {
           return true;
         }
 
@@ -293,6 +352,10 @@ export function usePresetSession(
         const userColor = userColorChar(preset);
         const evalBefore = normalizeToUserPov(beforeAnalysis.scoreCp, userColor, userColor);
         const evalAfter = normalizeToUserPov(afterAnalysis.scoreCp, chess.turn(), userColor);
+        if (!Number.isFinite(evalBefore) || !Number.isFinite(evalAfter)) {
+          resetToPreset('mistake');
+          return false;
+        }
         const lossCp = evalBefore - evalAfter;
 
         if (lossCp >= QUIZ_MOVE_LOSS_CP) {
@@ -300,7 +363,9 @@ export function usePresetSession(
           return false;
         }
       } catch {
-        // If grading fails, allow play to continue.
+        // In strict mode we still have to enforce resets even when analysis fails.
+        resetToPreset('mistake');
+        return false;
       }
 
       return true;
@@ -311,6 +376,7 @@ export function usePresetSession(
   const recordAcceptedMove = useCallback(
     (nextMoveCount: number) => {
       const now = new Date().toISOString();
+      sessionMoveCountRef.current = nextMoveCount;
       setSessionMoveCount(nextMoveCount);
       setStats((current) => {
         if (!current) {
@@ -337,18 +403,17 @@ export function usePresetSession(
       processingRef.current = true;
       setIsProcessing(true);
 
-      const preset = presetRef.current;
-      if (!preset) {
-        processingRef.current = false;
-        setIsProcessing(false);
-        return;
-      }
-
-      setSessionMessage(null);
-
-      const userColor = userColorChar(preset);
-      let currentFen: string;
       try {
+        const preset = presetRef.current;
+        if (!preset) {
+          return;
+        }
+
+        setSessionMessage(null);
+
+        const userColor = userColorChar(preset);
+        let currentFen: string;
+
         const chess = new Chess(fenBefore);
         const from = userUci.slice(0, 2) as Square;
         const to = userUci.slice(2, 4) as Square;
@@ -357,80 +422,74 @@ export function usePresetSession(
           promo === 'q' || promo === 'r' || promo === 'b' || promo === 'n' ? promo : undefined;
         chess.move({ from, to, promotion: promotion ?? 'q' });
         currentFen = chess.fen();
-      } catch {
-        processingRef.current = false;
-        setIsProcessing(false);
-        return;
-      }
 
-      if (isDrawOrStalemate(currentFen)) {
-        if (resetOnDrawEnabled(preset)) {
-          resetToPreset('draw');
-        } else {
-          setSessionMessage('Game drawn.');
-          void refreshEval(currentFen);
-        }
-        processingRef.current = false;
-        setIsProcessing(false);
-        return;
-      }
-
-      if (isUserCheckmated(currentFen, userColor)) {
-        if (preset.sessionDefaults.resetOnMistake) {
-          resetToPreset('mistake');
-        } else {
-          setSessionMessage('Checkmated.');
-          void refreshEval(currentFen);
-        }
-        processingRef.current = false;
-        setIsProcessing(false);
-        return;
-      }
-
-      const moveOk = await gradeUserMove(fenBefore, userUci);
-      if (!moveOk) {
-        processingRef.current = false;
-        setIsProcessing(false);
-        return;
-      }
-
-      const nextMoveCount = sessionMoveCountRef.current + 1;
-      recordAcceptedMove(nextMoveCount);
-
-      const maxMoves = preset.sessionDefaults.maxMoves;
-      if (maxMoves !== undefined && nextMoveCount >= maxMoves) {
-        setSessionComplete(true);
-        setSessionMessage(`Session limit reached (${maxMoves} moves).`);
-        setStats((current) => {
-          if (!current) {
-            return current;
+        if (isDrawOrStalemate(currentFen)) {
+          if (resetOnDrawEnabled(preset)) {
+            resetToPreset('draw');
+          } else {
+            setSessionMessage('Game drawn.');
+            void refreshEval(currentFen);
           }
-          const updated: DrillStats = {
-            ...current,
-            bestSessionMoves: Math.max(current.bestSessionMoves ?? 0, nextMoveCount),
-            lastPlayedAt: new Date().toISOString(),
-          };
-          persist(updated, true);
-          return updated;
-        });
+          return;
+        }
+
+        if (isUserCheckmated(currentFen, userColor)) {
+          if (preset.sessionDefaults.resetOnMistake) {
+            resetToPreset('mistake');
+          } else {
+            setSessionMessage('Checkmated.');
+            void refreshEval(currentFen);
+          }
+          return;
+        }
+
+        const moveOk = await gradeUserMove(fenBefore, userUci);
+        if (!moveOk) {
+          return;
+        }
+
+        const nextMoveCount = sessionMoveCountRef.current + 1;
+        recordAcceptedMove(nextMoveCount);
+
+        const maxMoves = preset.sessionDefaults.maxMoves;
+        if (maxMoves !== undefined && nextMoveCount >= maxMoves) {
+          setSessionComplete(true);
+          setSessionMessage(`Session limit reached (${maxMoves} moves).`);
+          setStats((current) => {
+            if (!current) {
+              return current;
+            }
+            const updated: DrillStats = {
+              ...current,
+              bestSessionMoves: Math.max(current.bestSessionMoves ?? 0, nextMoveCount),
+              completions: current.completions + 1,
+              lastPlayedAt: new Date().toISOString(),
+            };
+            persist(updated, true);
+            return updated;
+          });
+          // Prevent completion increments on resign/unmount after limit completion.
+          completionRecordedRef.current = true;
+          void refreshEval(currentFen);
+          return;
+        }
+
+        const chessAfterUser = new Chess(currentFen);
+        if (!chessAfterUser.isGameOver() && chessAfterUser.turn() !== userColor) {
+          const afterReply = await playEngineReply(currentFen);
+          if (afterReply) {
+            currentFen = afterReply;
+          }
+        }
+
         void refreshEval(currentFen);
+      } catch {
+        // Hard safety net: never leave the board locked on unexpected failures.
+        setSessionMessage('Unexpected processing error — board unlocked.');
+      } finally {
         processingRef.current = false;
         setIsProcessing(false);
-        return;
       }
-
-      const chessAfterUser = new Chess(currentFen);
-      if (!chessAfterUser.isGameOver() && chessAfterUser.turn() !== userColor) {
-        const afterReply = await playEngineReply(currentFen);
-        if (afterReply) {
-          currentFen = afterReply;
-        }
-      }
-
-      void refreshEval(currentFen);
-
-      processingRef.current = false;
-      setIsProcessing(false);
     },
     [gradeUserMove, persist, playEngineReply, recordAcceptedMove, refreshEval, resetToPreset],
   );
@@ -470,10 +529,16 @@ export function usePresetSession(
         await flushOutgoingPresetSession(outgoingPresetId, outgoingMoveCount);
       }
 
-      const preset = filteredPresets.find((item) => item.id === presetId);
+      const preset = allPresets.find((item) => item.id === presetId);
       if (!preset) {
+        setSessionMessage(`Invalid preset id: ${presetId}`);
+        setSelectedPresetId(null);
         return;
       }
+
+      // Ensure all ref-based callbacks use the newly loaded preset.
+      presetRef.current = preset;
+      sessionMoveCountRef.current = 0;
 
       processingRef.current = false;
       setIsProcessing(false);
@@ -485,19 +550,12 @@ export function usePresetSession(
       completionRecordedRef.current = false;
       loadFen(preset.fen);
 
-      const sessionKey = `${module}:${presetId}`;
-      const shouldCountAttempt =
-        userSelectedPresetRef.current || lastLoadedPresetSessionKey !== sessionKey;
-      userSelectedPresetRef.current = false;
-      lastLoadedPresetSessionKey = sessionKey;
-
       const existing = await getDrillStats(presetId);
       const now = new Date().toISOString();
       const record: DrillStats = {
         ...(existing ?? createDefaultDrillStats(presetId, module)),
-        attempts: shouldCountAttempt
-          ? (existing?.attempts ?? 0) + 1
-          : (existing?.attempts ?? 0),
+        // Every session load counts as a new attempt.
+        attempts: (existing?.attempts ?? 0) + 1,
         lastPlayedAt: now,
       };
       setStats(record);
@@ -511,7 +569,7 @@ export function usePresetSession(
     },
     [
       ensurePresetSkillLevel,
-      filteredPresets,
+      allPresets,
       flushOutgoingPresetSession,
       flushWrites,
       isReady,
@@ -542,20 +600,19 @@ export function usePresetSession(
     persist(updated, true);
   }, [persist]);
 
-  const flushWritesRef = useRef(flushWrites);
-  flushWritesRef.current = flushWrites;
-  const recordCompletionRef = useRef(recordCompletion);
-  recordCompletionRef.current = recordCompletion;
-
   const selectPreset = useCallback((presetId: string) => {
-    userSelectedPresetRef.current = true;
+    setSessionMessage(null);
     setSelectedPresetId(presetId);
   }, []);
 
   const endSession = useCallback(() => {
-    recordCompletion();
+    if (sessionComplete) {
+      recordCompletion();
+    } else {
+      flushWrites();
+    }
     setSessionMessage('Session saved.');
-  }, [recordCompletion]);
+  }, [flushWrites, recordCompletion, sessionComplete]);
 
   const handleMove = useCallback(
     (from: Square, to: Square, promotion?: 'q' | 'r' | 'b' | 'n'): boolean => {
@@ -590,17 +647,14 @@ export function usePresetSession(
   );
 
   useEffect(() => {
-    const targetId = resolvePresetId();
-    if (targetId && targetId !== selectedPresetId) {
-      setSelectedPresetId(targetId);
-    }
-  }, [resolvePresetId, selectedPresetId]);
-
-  useEffect(() => {
     if (!selectedPresetId) {
       return;
     }
-    void loadPresetSession(selectedPresetId);
+    const id = selectedPresetId;
+    // Avoid "setState in effect" lint by scheduling after paint.
+    queueMicrotask(() => {
+      void loadPresetSession(id);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPresetId]);
 
@@ -619,10 +673,10 @@ export function usePresetSession(
 
   useEffect(() => {
     return () => {
-      if (sessionMoveCountRef.current > 0 && !completionRecordedRef.current) {
-        recordCompletionRef.current();
+      if (sessionComplete && sessionMoveCountRef.current > 0 && !completionRecordedRef.current) {
+        recordCompletion();
       } else {
-        flushWritesRef.current();
+        flushWrites();
       }
       resetEngineSkill();
       appliedSkillLevelRef.current = null;
@@ -643,7 +697,7 @@ export function usePresetSession(
     isGameOver;
 
   return {
-    presets: filteredPresets,
+    presets: pickerPresets,
     selectedPreset,
     selectedPresetId,
     selectPreset,

@@ -37,12 +37,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const settingsRef = useRef(settings);
-  settingsRef.current = settings;
-
   const isLoadingRef = useRef(isLoading);
-  isLoadingRef.current = isLoading;
 
   const pendingPatchRef = useRef<SettingsPatch | null>(null);
+  const isFlushingPendingPatchRef = useRef(false);
+
+  useEffect(() => {
+    settingsRef.current = settings;
+    isLoadingRef.current = isLoading;
+  }, [settings, isLoading]);
 
   const applyPatch = useCallback(
     async (patch: SettingsPatch) => {
@@ -65,16 +68,55 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setSettings((prev) => mergeSettings(prev, patch));
         return;
       }
-      await applyPatch(patch);
+      try {
+        await applyPatch(patch);
+        // If there was a previously queued patch, this flush also persists it.
+        pendingPatchRef.current = null;
+      } catch (err) {
+        // Keep failed writes queued so the retry effect can flush later.
+        pendingPatchRef.current = mergeSettingsPatches(
+          pendingPatchRef.current,
+          patch,
+        );
+        throw err;
+      }
     },
     [applyPatch, setSettings],
   );
 
   useEffect(() => {
-    if (!isLoading && pendingPatchRef.current) {
-      pendingPatchRef.current = null;
-      void flush();
+    if (isLoading || !pendingPatchRef.current || isFlushingPendingPatchRef.current) {
+      return;
     }
+
+    isFlushingPendingPatchRef.current = true;
+    const maxAttempts = 3;
+
+    void (async () => {
+      let attempts = 0;
+      while (
+        pendingPatchRef.current &&
+        !isLoadingRef.current &&
+        attempts < maxAttempts
+      ) {
+        try {
+          await flush();
+          pendingPatchRef.current = null;
+          return;
+        } catch (err) {
+          attempts += 1;
+          console.warn('Failed to flush queued settings patch:', err);
+          // Keep `pendingPatchRef` so we can retry.
+          if (attempts >= maxAttempts) {
+            return;
+          }
+          // Small delay avoids rapid retry loops on transient IDB failures.
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      }
+    })().finally(() => {
+      isFlushingPendingPatchRef.current = false;
+    });
   }, [isLoading, flush]);
 
   const updateUsername = useCallback(
@@ -99,6 +141,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 export type { SettingsPatch } from '../utils/settingsMerge';
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAppContext(): AppContextValue {
   const ctx = useContext(AppContext);
   if (!ctx) {

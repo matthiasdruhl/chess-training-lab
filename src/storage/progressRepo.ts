@@ -33,7 +33,11 @@ export async function putProgress(record: RepertoireProgress): Promise<void> {
 
 export async function listByColor(color: RepertoireColor): Promise<RepertoireProgress[]> {
   const db = await openAppDB();
-  return (await db.getAllFromIndex('repertoire_progress', 'color', color)) as RepertoireProgress[];
+  return (await db.getAllFromIndex(
+    'repertoire_progress',
+    'color',
+    color,
+  )) as RepertoireProgress[];
 }
 
 export async function listAllProgress(): Promise<RepertoireProgress[]> {
@@ -43,22 +47,7 @@ export async function listAllProgress(): Promise<RepertoireProgress[]> {
 
 export async function listDueForReview(): Promise<RepertoireProgress[]> {
   const all = await listAllProgress();
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - REPERTOIRE_DUE_DAYS);
-  const cutoffIso = cutoff.toISOString();
-
-  return all.filter((record) => {
-    if (record.status === 'known') {
-      return false;
-    }
-    if (record.status === 'new' || record.status === 'learning') {
-      return true;
-    }
-    if (!record.lastPracticedAt) {
-      return true;
-    }
-    return record.lastPracticedAt < cutoffIso;
-  });
+  return all.filter((record) => isProgressDue(record));
 }
 
 export function isProgressDue(record: RepertoireProgress | undefined): boolean {
@@ -68,13 +57,23 @@ export function isProgressDue(record: RepertoireProgress | undefined): boolean {
   if (record.status === 'known') {
     return false;
   }
+
   if (record.status === 'new' || record.status === 'learning') {
     return true;
   }
+
+  const now = new Date();
+  const nowIso = now.toISOString();
+
+  if (record.nextReviewAt) {
+    return record.nextReviewAt <= nowIso;
+  }
+
   if (!record.lastPracticedAt) {
     return true;
   }
-  const cutoff = new Date();
+
+  const cutoff = new Date(now);
   cutoff.setDate(cutoff.getDate() - REPERTOIRE_DUE_DAYS);
   return record.lastPracticedAt < cutoff.toISOString();
 }

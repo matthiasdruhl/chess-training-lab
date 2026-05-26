@@ -1,14 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DEBOUNCE_WRITE_MS } from '../constants/persistence';
-import { listHandoffs } from '../services/bridge/loadHandoffs';
+import { getHandoffValidationError, listHandoffs } from '../services/bridge/loadHandoffs';
 import type { BridgeHandoff, BridgeProgress } from '../types/bridge';
 import { createDefaultBridgeProgress, getBridgeProgress, putBridgeProgress } from '../storage/bridgeRepo';
 import { useChessSession } from './useChessSession';
 
 export function useBridgeHandoff(handoffIdFromQuery: string | null, nodeIdFromQuery: string | null) {
   const navigate = useNavigate();
-  const handoffs = useMemo(() => listHandoffs(), []);
+  const { handoffs, dataError } = useMemo(() => {
+    try {
+      return {
+        handoffs: listHandoffs(),
+        dataError: getHandoffValidationError(),
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load bridge handoffs.';
+      return { handoffs: [] as BridgeHandoff[], dataError: message };
+    }
+  }, []);
 
   const filteredHandoffs = useMemo(() => {
     if (!nodeIdFromQuery) {
@@ -43,6 +53,26 @@ export function useBridgeHandoff(handoffIdFromQuery: string | null, nodeIdFromQu
 
   const pendingWriteRef = useRef<BridgeProgress | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const selectionRequestIdRef = useRef(0);
+  const clearSelectionStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const selectHandoffTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearSelectionState = useCallback(() => {
+    selectionRequestIdRef.current += 1;
+    setSelectedHandoffId(null);
+    setFeedback(null);
+    setSelectedPlanId(null);
+    setPassed(false);
+    setProgress(null);
+  }, []);
+  const scheduleClearSelectionState = useCallback(() => {
+    if (clearSelectionStateTimerRef.current) {
+      clearTimeout(clearSelectionStateTimerRef.current);
+    }
+    clearSelectionStateTimerRef.current = setTimeout(() => {
+      clearSelectionStateTimerRef.current = null;
+      clearSelectionState();
+    }, 0);
+  }, [clearSelectionState]);
 
   const flushWrites = useCallback(() => {
     if (debounceRef.current) {
@@ -84,8 +114,12 @@ export function useBridgeHandoff(handoffIdFromQuery: string | null, nodeIdFromQu
   const selectHandoff = useCallback(
     async (handoffId: string) => {
       flushWrites();
+      const requestId = selectionRequestIdRef.current + 1;
+      selectionRequestIdRef.current = requestId;
+
       const handoff = filteredHandoffs.find((h) => h.id === handoffId);
       if (!handoff) {
+        clearSelectionState();
         return;
       }
 
@@ -96,6 +130,10 @@ export function useBridgeHandoff(handoffIdFromQuery: string | null, nodeIdFromQu
 
       const existing = await getBridgeProgress(handoffId);
       const record = existing ?? createDefaultBridgeProgress(handoffId, handoff.repertoireNodeId);
+
+       if (selectionRequestIdRef.current !== requestId) {
+        return;
+      }
       setProgress(record);
 
       if (record.planQuizPassed) {
@@ -105,23 +143,52 @@ export function useBridgeHandoff(handoffIdFromQuery: string | null, nodeIdFromQu
         setPassed(false);
       }
     },
-    [filteredHandoffs, flushWrites, loadFen],
+    [clearSelectionState, filteredHandoffs, flushWrites, loadFen],
+  );
+  const scheduleSelectHandoff = useCallback(
+    (handoffId: string) => {
+      if (selectHandoffTimerRef.current) {
+        clearTimeout(selectHandoffTimerRef.current);
+      }
+      selectHandoffTimerRef.current = setTimeout(() => {
+        selectHandoffTimerRef.current = null;
+        void selectHandoff(handoffId);
+      }, 0);
+    },
+    [selectHandoff],
   );
 
   useEffect(() => {
     const targetId = resolveHandoffId();
-    if (targetId && targetId !== selectedHandoffId) {
-      setSelectedHandoffId(targetId);
-    }
-  }, [resolveHandoffId, selectedHandoffId]);
-
-  useEffect(() => {
-    if (!selectedHandoffId) {
+    if (!targetId) {
+      flushWrites();
+      if (
+        selectedHandoffId !== null ||
+        progress !== null ||
+        passed ||
+        selectedPlanId !== null ||
+        feedback !== null
+      ) {
+        scheduleClearSelectionState();
+      }
       return;
     }
-    void selectHandoff(selectedHandoffId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedHandoffId]);
+
+    if (targetId !== selectedHandoffId) {
+      scheduleSelectHandoff(targetId);
+    }
+  }, [
+    clearSelectionState,
+    feedback,
+    flushWrites,
+    passed,
+    progress,
+    resolveHandoffId,
+    scheduleClearSelectionState,
+    scheduleSelectHandoff,
+    selectedHandoffId,
+    selectedPlanId,
+  ]);
 
   const choosePlan = useCallback(
     (planId: string) => {
@@ -180,6 +247,12 @@ export function useBridgeHandoff(handoffIdFromQuery: string | null, nodeIdFromQu
   useEffect(() => {
     return () => {
       flushWrites();
+      if (clearSelectionStateTimerRef.current) {
+        clearTimeout(clearSelectionStateTimerRef.current);
+      }
+      if (selectHandoffTimerRef.current) {
+        clearTimeout(selectHandoffTimerRef.current);
+      }
     };
   }, [flushWrites]);
 
@@ -196,5 +269,6 @@ export function useBridgeHandoff(handoffIdFromQuery: string | null, nodeIdFromQu
     continueToMiddlegame,
     progress,
     orientation: selectedHandoff?.color ?? 'white',
+    dataError,
   };
 }

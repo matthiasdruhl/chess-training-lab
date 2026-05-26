@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/preserve-manual-memoization */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Square } from 'chess.js';
 import { OPPONENT_REPLY_DELAY_MS } from '../constants/engine';
@@ -34,10 +35,25 @@ function nextStatusAfterCompletion(current: RepertoireProgress): RepertoireProgr
   if (current.status === 'known') {
     return 'known';
   }
-  if (current.successfulCompletions >= 2) {
+  const successfulCompletions = current.successfulCompletions + 1;
+  if (successfulCompletions >= 2) {
     return 'review';
   }
   return 'learning';
+}
+
+function computeNextReviewAt(record: RepertoireProgress, now: Date): string | null {
+  if (record.status === 'known') {
+    return null;
+  }
+
+  if (record.status === 'new' || record.status === 'learning') {
+    return null;
+  }
+
+  const next = new Date(now);
+  next.setDate(next.getDate() + 1);
+  return next.toISOString();
 }
 
 export function useRepertoireTrainer() {
@@ -67,8 +83,9 @@ export function useRepertoireTrainer() {
   const currentProgress = selectedNodeId ? progressMap[selectedNodeId] : undefined;
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingProgressRef = useRef<RepertoireProgress | null>(null);
+  const pendingProgressRef = useRef<Record<string, RepertoireProgress>>({});
   const autoPlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const strictResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const flushProgressWrites = useCallback(() => {
     if (debounceRef.current) {
@@ -76,15 +93,19 @@ export function useRepertoireTrainer() {
       debounceRef.current = null;
     }
     const pending = pendingProgressRef.current;
-    if (pending) {
-      pendingProgressRef.current = null;
-      void putProgress(pending);
+    const records = Object.values(pending);
+    if (records.length > 0) {
+      pendingProgressRef.current = {};
+      void Promise.all(records.map((record) => putProgress(record)));
     }
   }, []);
 
   const persistProgress = useCallback((record: RepertoireProgress, immediate = false) => {
     setProgressMap((prev) => ({ ...prev, [record.nodeId]: record }));
-    pendingProgressRef.current = record;
+    pendingProgressRef.current = {
+      ...pendingProgressRef.current,
+      [record.nodeId]: record,
+    };
 
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
@@ -92,7 +113,9 @@ export function useRepertoireTrainer() {
     }
 
     if (immediate) {
-      pendingProgressRef.current = null;
+      const nextPending = { ...pendingProgressRef.current };
+      delete nextPending[record.nodeId];
+      pendingProgressRef.current = nextPending;
       void putProgress(record);
       return;
     }
@@ -100,9 +123,10 @@ export function useRepertoireTrainer() {
     debounceRef.current = setTimeout(() => {
       debounceRef.current = null;
       const toWrite = pendingProgressRef.current;
-      pendingProgressRef.current = null;
-      if (toWrite) {
-        void putProgress(toWrite);
+      pendingProgressRef.current = {};
+      const records = Object.values(toWrite);
+      if (records.length > 0) {
+        void Promise.all(records.map((item) => putProgress(item)));
       }
     }, DEBOUNCE_WRITE_MS);
   }, []);
@@ -122,15 +146,18 @@ export function useRepertoireTrainer() {
     resetBoard();
   }, [flushProgressWrites, resetBoard]);
 
-  const loadProgressForNodes = useCallback(async (nodes: FlattenedRepertoireNode[]) => {
-    const entries = await Promise.all(
-      nodes.map(async ({ node, color }) => {
-        const existing = await getProgress(node.id);
-        return [node.id, existing ?? createDefaultProgress(node.id, color)] as const;
-      }),
-    );
-    setProgressMap(Object.fromEntries(entries));
-  }, []);
+  const loadProgressForNodes = useCallback(
+    async (nodes: FlattenedRepertoireNode[]) => {
+      const entries = await Promise.all(
+        nodes.map(async ({ node, color }) => {
+          const existing = await getProgress(node.id);
+          return [node.id, existing ?? createDefaultProgress(node.id, color)] as const;
+        }),
+      );
+      return Object.fromEntries(entries) as Record<string, RepertoireProgress>;
+    },
+    [],
+  );
 
   const rootForColor = getRootByColor(repertoire, selectedColor);
   const treeNodes = rootForColor ? flattenTrainableNodes(rootForColor) : [];
@@ -140,7 +167,20 @@ export function useRepertoireTrainer() {
     if (!root) {
       return;
     }
-    void loadProgressForNodes(flattenTrainableNodes(root));
+
+    let cancelled = false;
+    const nodes = flattenTrainableNodes(root);
+
+    void (async () => {
+      const map = await loadProgressForNodes(nodes);
+      if (!cancelled) {
+        setProgressMap(map);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedColor, loadProgressForNodes, repertoire]);
 
   const completeLineRef = useRef<() => void>(() => {});
@@ -200,6 +240,10 @@ export function useRepertoireTrainer() {
       clearTimeout(autoPlayTimerRef.current);
       autoPlayTimerRef.current = null;
     }
+    if (strictResetTimerRef.current) {
+      clearTimeout(strictResetTimerRef.current);
+      strictResetTimerRef.current = null;
+    }
 
     const start = getTrainingStart(selectedNode);
     loadFen(start.fen);
@@ -251,7 +295,8 @@ export function useRepertoireTrainer() {
       selectedNode.id,
       selectedRoot.color,
     );
-    const now = new Date().toISOString();
+    const nowDate = new Date();
+    const now = nowDate.toISOString();
     const streak = base.streak + 1;
     const updated: RepertoireProgress = {
       ...base,
@@ -262,12 +307,14 @@ export function useRepertoireTrainer() {
       lastPracticedAt: now,
       status: nextStatusAfterCompletion(base),
     };
+    updated.nextReviewAt = computeNextReviewAt(updated, nowDate);
     persistProgress(updated, true);
     setFeedback('Line complete — nice work.');
     setPhase('complete');
   }, [persistProgress, progressMap, selectedNode, selectedRoot]);
-
-  completeLineRef.current = completeLine;
+  useEffect(() => {
+    completeLineRef.current = completeLine;
+  }, [completeLine]);
 
   const handleWrongMove = useCallback(() => {
     if (!selectedNode || !selectedRoot) {
@@ -278,12 +325,15 @@ export function useRepertoireTrainer() {
       selectedNode.id,
       selectedRoot.color,
     );
+    const nowDate = new Date();
+    const now = nowDate.toISOString();
     const updated: RepertoireProgress = {
       ...base,
       streak: 0,
       attempts: base.attempts + 1,
-      lastPracticedAt: new Date().toISOString(),
+      lastPracticedAt: now,
     };
+    updated.nextReviewAt = computeNextReviewAt(updated, nowDate);
     persistProgress(updated);
 
     if (selectedNode.trainer.hints.showIntentAfterMistake) {
@@ -293,7 +343,12 @@ export function useRepertoireTrainer() {
     setPhase('mistake');
 
     if (selectedNode.trainer.mode === 'strict') {
-      setTimeout(() => {
+      if (strictResetTimerRef.current) {
+        clearTimeout(strictResetTimerRef.current);
+        strictResetTimerRef.current = null;
+      }
+      strictResetTimerRef.current = setTimeout(() => {
+        strictResetTimerRef.current = null;
         resetLine();
       }, OPPONENT_REPLY_DELAY_MS);
     }
@@ -376,14 +431,21 @@ export function useRepertoireTrainer() {
       selectedNode.id,
       selectedRoot.color,
     );
-    persistProgress(
-      {
-        ...base,
-        status: 'known',
-        lastPracticedAt: new Date().toISOString(),
-      },
-      true,
-    );
+    const nowDate = new Date();
+    const now = nowDate.toISOString();
+    const updated: RepertoireProgress = {
+      ...base,
+      status: 'known',
+      lastPracticedAt: now,
+      nextReviewAt: computeNextReviewAt(
+        {
+          ...base,
+          status: 'known',
+        },
+        nowDate,
+      ),
+    };
+    persistProgress(updated, true);
     setFeedback('Marked as known.');
   }, [persistProgress, progressMap, selectedNode, selectedRoot]);
 
@@ -396,6 +458,9 @@ export function useRepertoireTrainer() {
       flushProgressWrites();
       if (autoPlayTimerRef.current) {
         clearTimeout(autoPlayTimerRef.current);
+      }
+      if (strictResetTimerRef.current) {
+        clearTimeout(strictResetTimerRef.current);
       }
     };
   }, [flushProgressWrites]);
